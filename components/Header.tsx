@@ -2,6 +2,7 @@ import siteMetadata from '@/data/siteMetadata'
 import headerNavLinks from '@/data/headerNavLinks'
 import Image from "next/image"
 import logo from '@/data/favicon.png'
+import logoDark from '@/data/logo_light.png'
 import Link from './Link'
 import MobileNav from './MobileNav'
 import ThemeSwitch from './ThemeSwitch'
@@ -19,17 +20,28 @@ const Header = () => {
         <div className="flex items-center justify-between">
           <div className="mr-3">
             <div className="mr-3">
-              <Image
-                src={logo}
-                alt="Logo"
-                width={32}
-                height={32}
-                priority
-              />
+              <div className="mr-3">
+                <Image
+                  src={logo}
+                  alt="Logo"
+                  width={32}
+                  height={32}
+                  priority
+                  className="block dark:hidden"
+                />
+                <Image
+                  src={logoDark}
+                  alt="Logo"
+                  width={32}
+                  height={32}
+                  priority
+                  className="hidden dark:block"
+                />
+              </div>
             </div>
           </div>
           {typeof siteMetadata.headerTitle === 'string' ? (
-            <div className="hidden h-6 text-2xl font-semibold font-pixel sm:block">
+            <div className="font-pixel hidden h-6 text-2xl font-semibold sm:block">
               {siteMetadata.headerTitle}
             </div>
           ) : (
@@ -45,7 +57,7 @@ const Header = () => {
               <Link
                 key={link.title}
                 href={link.href}
-                className="hover:text-primary-500 font-pixel dark:hover:text-primary-400 m-1 font-medium font-pixel text-gray-900 dark:text-gray-100"
+                className="hover:text-primary-500 font-pixel dark:hover:text-primary-400 font-pixel m-1 font-medium text-gray-900 dark:text-gray-100"
               >
                 {link.title}
               </Link>
