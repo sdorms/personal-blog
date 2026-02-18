@@ -8,4 +8,3 @@ export const pixel = localFont({
   variable: '--font-pixel',
   display: 'swap',
 })
-

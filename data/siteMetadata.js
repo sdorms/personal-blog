@@ -2,7 +2,7 @@
 const siteMetadata = {
   title: 'brb shipping',
   author: 'Stephen Dorman',
-  headerTitle: "brb shipping",
+  headerTitle: 'brb shipping',
   description: 'Building, shipping & distributing in 2026',
   language: 'en-us',
   theme: 'system', // system, dark or light

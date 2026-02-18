@@ -1,5 +1,5 @@
 @import 'tailwindcss';
-@plugin "@tailwindcss/forms";
+@plugin '@tailwindcss/forms';
 @plugin '@tailwindcss/typography';
 @source '../node_modules/pliny';
 @custom-variant dark (&:where(.dark, .dark *));
@@ -10,8 +10,9 @@
   /* --font-sans: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
     'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';*/
 
-  --font-pixel: var(--font-pixel), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
-    "Courier New", monospace;
+  --font-pixel:
+    var(--font-pixel), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    'Courier New', monospace;
 
   /* Colors */
   /* Copied from https://tailwindcss.com/docs/theme#default-theme-variable-reference */
@@ -26,7 +27,7 @@
   --color-primary-800: oklch(42.4% 0.199 265.638);
   --color-primary-900: oklch(37.9% 0.146 265.522);
   --color-primary-950: oklch(28.2% 0.091 267.935);
- 
+
   --color-gray-50: oklch(0.985 0.002 247.839);
   --color-gray-100: oklch(0.967 0.003 264.542);
   --color-gray-200: oklch(0.928 0.006 264.531);
@@ -93,7 +94,7 @@
       font-family: var(--font-pixel);
     }
   }
-  
+
   .prose {
     & a {
       color: var(--color-primary-500);

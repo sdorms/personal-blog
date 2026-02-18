@@ -1,6 +1,6 @@
 import siteMetadata from '@/data/siteMetadata'
 import headerNavLinks from '@/data/headerNavLinks'
-import Image from "next/image"
+import Image from 'next/image'
 import logo from '@/data/favicon.png'
 import logoDark from '@/data/logo_light.png'
 import Link from './Link'
