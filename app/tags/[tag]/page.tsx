@@ -9,6 +9,9 @@ import { Metadata } from 'next'
 
 const POSTS_PER_PAGE = 5
 
+const isProduction =
+  process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production'
+
 export async function generateMetadata(props: {
   params: Promise<{ tag: string }>
 }): Promise<Metadata> {
@@ -39,7 +42,11 @@ export default async function TagPage(props: { params: Promise<{ tag: string }> 
   const tag = decodeURI(params.tag)
   const title = tag[0].toUpperCase() + tag.split(' ').join('-').slice(1)
   const filteredPosts = allCoreContent(
-    sortPosts(allBlogs.filter((post) => post.tags && post.tags.map((t) => slug(t)).includes(tag)))
+    sortPosts(
+      allBlogs
+        .filter((post) => !isProduction || post.draft !== true)
+        .filter((post) => post.tags?.map((t) => slug(t)).includes(tag))
+    )
   )
   const totalPages = Math.ceil(filteredPosts.length / POSTS_PER_PAGE)
   const initialDisplayPosts = filteredPosts.slice(0, POSTS_PER_PAGE)

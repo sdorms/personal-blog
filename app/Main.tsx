@@ -3,10 +3,17 @@ import Tag from '@/components/Tag'
 import siteMetadata from '@/data/siteMetadata'
 import { formatDate } from 'pliny/utils/formatDate'
 import NewsletterForm from 'pliny/ui/NewsletterForm'
+import { allCoreContent, sortPosts } from 'pliny/utils/contentlayer'
+import { allBlogs } from 'contentlayer/generated'
 
 const MAX_DISPLAY = 5
 
-export default function Home({ posts }) {
+const isProduction =
+  process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production'
+
+const posts = allCoreContent(sortPosts(allBlogs.filter((p) => !isProduction || p.draft !== true)))
+
+export default function Home() {
   return (
     <>
       <div className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -44,7 +51,7 @@ export default function Home({ posts }) {
                             </Link>
                           </h2>
                           <div className="flex flex-wrap">
-                            {tags.map((tag) => (
+                            {tags?.map((tag) => (
                               <Tag key={tag} text={tag} />
                             ))}
                           </div>

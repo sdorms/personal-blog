@@ -27,7 +27,8 @@ import { allCoreContent, sortPosts } from 'pliny/utils/contentlayer.js'
 import prettier from 'prettier'
 
 const root = process.cwd()
-const isProduction = process.env.NODE_ENV === 'production'
+const isProduction =
+  process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production'
 
 // heroicon mini link
 const icon = fromHtmlIsomorphic(
