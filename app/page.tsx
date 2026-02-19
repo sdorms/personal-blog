@@ -1,9 +1,12 @@
-import { sortPosts, allCoreContent } from 'pliny/utils/contentlayer'
-import { allBlogs } from 'contentlayer/generated'
 import Main from './Main'
+import { allCoreContent, sortPosts } from 'pliny/utils/contentlayer'
+import { allBlogs } from 'contentlayer/generated'
 
-export default async function Page() {
-  const sortedPosts = sortPosts(allBlogs)
-  const posts = allCoreContent(sortedPosts)
+const isProduction =
+  process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production'
+
+export default function Page() {
+  const posts = allCoreContent(sortPosts(allBlogs.filter((p) => !isProduction || p.draft !== true)))
+
   return <Main posts={posts} />
 }

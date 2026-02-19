@@ -3,17 +3,16 @@ import Tag from '@/components/Tag'
 import siteMetadata from '@/data/siteMetadata'
 import { formatDate } from 'pliny/utils/formatDate'
 import NewsletterForm from 'pliny/ui/NewsletterForm'
-import { allCoreContent, sortPosts } from 'pliny/utils/contentlayer'
-import { allBlogs } from 'contentlayer/generated'
+import type { CoreContent } from 'pliny/utils/contentlayer'
+import type { Blog } from 'contentlayer/generated'
 
 const MAX_DISPLAY = 5
 
-const isProduction =
-  process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production'
+type MainProps = {
+  posts: CoreContent<Blog>[]
+}
 
-const posts = allCoreContent(sortPosts(allBlogs.filter((p) => !isProduction || p.draft !== true)))
-
-export default function Home() {
+export default function Main({ posts }: MainProps) {
   return (
     <>
       <div className="divide-y divide-gray-200 dark:divide-gray-700">
