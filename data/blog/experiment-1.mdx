@@ -1,0 +1,91 @@
+---
+title: 'Experiment 1: Personal Site'
+date: '2026-02-18'
+tags: ['shipping', 'ai assisted']
+draft: false
+summary: 'If AI really lowers the cost of building software, the logical first step is simple: ship something.'
+---
+
+# Introduction
+
+To test whether AI really lowers the cost of building software, the logical first step is simple: ship something.
+
+You’ll have seen and read enough AI commentators harping on about the state of the tech world so I don’t want to repeat too many tired tropes here, however I will mention that for me personally, LLMs have driven a step change in my impact as an individual contributor and it appears that things are only accelerating.
+
+For the first time, as somebody with a PM background, I can realistically attempt to build, ship and distribute independently rather than just plan and prioritise. I don’t know how this shift will play out, but I believe that optionality increases with more reps on building and distribution.
+
+Right now my three most important barriers to success are:
+
+1. Gaining technical fluency
+2. Building audience/distribution
+3. Deciding what to build
+
+Let’s break them down.
+
+## 1. Gaining technical fluency
+
+You could (rightly) argue that this is not a barrier to success. People are already getting viable businesses off the ground with Claude Code or packaged solutions like Lovable and Bolt. If you have a simple idea, you can likely get an MVP out and get enough traction to hire somebody technical/attract a technical cofounder.
+
+However, my hypothesis is that the benefits you get using AI to build software scale with your technical fluency. E.g AI doesn’t eliminate the need for skill, but rather amplifies those who develop it.
+
+In my case, I’m interested in building software and integrating agents with real workflows, so the domains I’m targeting are likely going to tend towards areas with a higher technical lift. I’m bullish that being able to build confidently myself is going to enable a faster rate of higher quality iteration.
+
+Similarly, I’ve witnessed first hand from building a no-code tool for the last 5+ years that most non-technical users simply do not have the time (or inclination) to invest in building, so there will be a segment of customers that are always going to rely on technical input. Plus I’ve always wanted to take this step since grinding SQL at Amazon in the 2010s so now is as good a time as ever.
+
+Where am I at so far:
+
+- 3 months learning Python
+- AI assisted coding (not vibe coding)
+- This site is the first site I’ve personally deployed.
+
+My next steps here are to begin to actually build solo projects, and begin to learn Next/React/Tailwind as the stack I’m most likely to be building with over the coming months.
+
+## 2. Building audience/distribution
+
+I’ve delayed building in public because I’ve been focused on learning privately. However distribution can’t be an afterthought given that independent leverage is the goal. Building this blog and publishing this post is the first step in building that muscle. With regular shipping and honest documentation, I hope to create value for others navigating a similar transition.
+
+## 3. Deciding what to build
+
+At present, I’m in exploration mode. For the past few months I’ve focused on building technical fluency. Whilst learning python I was doing Angela Yu’s 100 days of Python course, which spoonfed me projects to do each day. The next phase is different in that it requires designing and shipping projects without a curriculum, and using them to test real problems and potential monetization paths.
+This blog was an easy place to start because it lets me ship publicly, learn a stack that aligns with what I want to build, and document the discovery process as I search for something worth going all-in on.
+
+## So, how did this project go?
+
+Given this is my first time diving into Next.js, tailwind, and my first time looking at js for a few years, I took the easy path on this build, picking a simple tailwind+next.js template by timrlrx and then making simple content/design edits before deploying in Vercel. I got the domain at porkbun, my first domain purchase which was a nice little milestone.
+
+I also ran into some commit failures caused by a mismatch between Yarn versions, lockfile expectations, and a strict ESLint setup, which required me to power through with chat GPT whilst largely a passenger. Problems like this are now 100x easier than they would have been for a developer relying on stackoverflow + docs even 5 years ago.
+
+Without AI, I’d have really struggled on this project. It would have taken me a huge amount of time to research and choose the right template (I simply chose my favourite one from some suggestions kicked out by Chat GPT). Stepping through and editing files would have required me to get to grips with the stack first which may have required weeks of time, as opposed to simply being able to brute force through with a personal assistant there to help as I went. Then finally, the issues I had with getting the commit to work might have ground the project to a halt altogether. This was when I was in almost full passenger mode. It would have taken quite some perseverance to grind through what to my current skillset is an opaque and abstract problem. With LLMs I breezed through it in an hour or so by sharing issues I was seeing in the terminal and then working step by step with Chat GPT to eliminate each blocker one by one. This represents a paradox of AI-assisted building: you can ship faster than you understand. This helps you to move forward, but getting the right balance between building knowledge and not getting unnecessarily blocked is key.
+
+That being said, this did reinforce the fact that I’m a long way off from being able to build this project myself and reason independently in this stack. I couldn’t have debugged those issues myself, so I need to make sure I invest in understanding fundamentals to tackle problems like this independently.
+
+## Experiment Summary:
+
+#### Hypothesis:
+
+AI reduces the friction to shipping unfamiliar tech, but does not eliminate the need for fluency.
+
+#### Experiment:
+
+Deploy a personal site using a modern JS stack I don’t understand.
+
+#### Result:
+
+Shipped in days, but largely in passenger mode.
+
+#### What did I learn?
+
+- AI drastically reduced friction in shipping unfamiliar tech, cutting down time to impact by weeks.
+- Delivering fast without technical understanding is fragile. In order to increase leverage, I need to build understanding and not focus solely on output.
+- Whilst this project is trivial compared to what I want to build, it serves as proof that I can enter unfamiliar territory and ship, which changes the game.
+- This stack is one that makes more sense for me moving forward in the next few months as opposed to python
+
+#### Output:
+
+I now have a functioning, deployed, slightly customized blog with a stable build pipeline.
+
+## Next steps:
+
+- Starting a js course to give me fundamentals whilst building projects in the evening
+- This experiment mostly addressed barrier #1. Upcoming experiments will tackle distribution and problem selection. The real test begins when I try to build something people will pay for.
+- Continuing to post weekly now that I have the context in which to do so. If you liked reading, please go ahead and subscribe to my newsletter for regular updates.
