@@ -1,4 +1,4 @@
-// app/tools/arr-reality-check/page.tsx
+import { Suspense } from 'react'
 import ArrRealityCheck from '@/components/tools/ArrPlanner'
 
 export const metadata = {
@@ -8,5 +8,9 @@ export const metadata = {
 }
 
 export default function Page() {
-  return <ArrRealityCheck />
+  return (
+    <Suspense fallback={<div className="mx-auto max-w-5xl px-4 py-10">Loading…</div>}>
+      <ArrRealityCheck />
+    </Suspense>
+  )
 }
