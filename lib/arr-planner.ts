@@ -39,6 +39,14 @@ export const SCENARIOS: Record<ScenarioKey, { label: string; rates: Rates }> = {
   },
 }
 
+export function formatCurrency(n: number) {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 0,
+  }).format(n)
+}
+
 function clamp01(n: number) {
   if (Number.isNaN(n)) return 0
   return Math.max(0, Math.min(1, n))

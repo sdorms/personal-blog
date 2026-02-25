@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import {
   SCENARIOS,
@@ -21,6 +21,11 @@ function parseScenario(value: string | null): ScenarioKey {
   return 'base'
 }
 
+function parsePositiveNumberFromString(s: string, fallback: number) {
+  const n = Number(s)
+  return Number.isFinite(n) && n > 0 ? n : fallback
+}
+
 function toPercentString(x01: number) {
   return String(Math.round(x01 * 1000) / 10) // one decimal percent
 }
@@ -32,23 +37,33 @@ function fromPercentInput(s: string, fallback01: number) {
 }
 
 export default function ArrRealityCheck() {
+  // hooks
   const router = useRouter()
   const pathname = usePathname()
   const params = useSearchParams()
 
-  // 1) Initialize from query params (or defaults)
+  // state
   const initialScenario = parseScenario(params.get('scenario'))
   const [scenario, setScenario] = useState<ScenarioKey>(initialScenario)
 
-  const [arrTarget, setArrTarget] = useState(() => parseNumber(params.get('arr'), 1_000_000))
-  const [months, setMonths] = useState(() => parseNumber(params.get('months'), 36))
-  const [monthlyPrice, setMonthlyPrice] = useState(() => parseNumber(params.get('price'), 20))
+  const [arrTargetStr, setArrTargetStr] = useState(() =>
+    String(parseNumber(params.get('arr'), 1_000_000))
+  )
+  const [monthsStr, setMonthsStr] = useState(() => String(parseNumber(params.get('months'), 36)))
+  const [monthlyPriceStr, setMonthlyPriceStr] = useState(() =>
+    String(parseNumber(params.get('price'), 20))
+  )
+
+  const arrTarget = parsePositiveNumberFromString(arrTargetStr.replace(/,/g, ''), 1_000_000)
+  const months = Math.round(parsePositiveNumberFromString(monthsStr, 36))
+  const monthlyPrice = parsePositiveNumberFromString(monthlyPriceStr.replace(/,/g, ''), 20)
 
   const [advancedOpen, setAdvancedOpen] = useState(false)
 
   const [rates, setRates] = useState<Rates>(() => {
     const preset = SCENARIOS[initialScenario].rates
     // Allow overrides via query params, fallback to preset
+
     return {
       exposureToVisit: params.get('e2v')
         ? fromPercentInput(params.get('e2v')!, preset.exposureToVisit)
@@ -62,27 +77,38 @@ export default function ArrRealityCheck() {
     }
   })
 
-  // 2) When scenario changes, update rates to that preset (unless you want “sticky custom” later)
+  const [ratesMode, setRatesMode] = useState<'preset' | 'custom'>('preset')
+
+  const presetRates = SCENARIOS[scenario].rates
+  const isCustom =
+    rates.exposureToVisit !== presetRates.exposureToVisit ||
+    rates.visitToTrial !== presetRates.visitToTrial ||
+    rates.trialToPaid !== presetRates.trialToPaid
+
+  // effects
   useEffect(() => {
-    setRates(SCENARIOS[scenario].rates)
-  }, [scenario])
+    if (ratesMode === 'preset') {
+      setRates(SCENARIOS[scenario].rates)
+    }
+  }, [scenario, ratesMode])
 
   // 3) Sync state -> URL query params (shareable)
   useEffect(() => {
     const sp = new URLSearchParams()
     sp.set('scenario', scenario)
+
     sp.set('arr', String(Math.round(arrTarget)))
     sp.set('months', String(Math.round(months)))
     sp.set('price', String(monthlyPrice))
 
-    // store rates as percent (e.g. 2 means 2%)
     sp.set('e2v', toPercentString(rates.exposureToVisit))
     sp.set('v2t', toPercentString(rates.visitToTrial))
     sp.set('t2p', toPercentString(rates.trialToPaid))
 
     router.replace(`${pathname}?${sp.toString()}`, { scroll: false })
-  }, [scenario, arrTarget, months, monthlyPrice, rates, router, pathname])
+  }, [scenario, arrTargetStr, monthsStr, monthlyPriceStr, rates, router, pathname])
 
+  // memos
   const outputs = useMemo(
     () =>
       computeArrRealityCheck({
@@ -118,8 +144,8 @@ export default function ArrRealityCheck() {
       <div className="mb-6">
         <h1 className="text-3xl font-bold tracking-tight">ARR Reality Check</h1>
         <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-          Run the math before you commit. Adjust price, timeline, and funnel assumptions to see what
-          scale you actually need.
+          Use this calculator to estimate what your funnel needs to look like in order to hit your
+          revenue goals.
         </p>
       </div>
 
@@ -156,15 +182,46 @@ export default function ArrRealityCheck() {
               <label htmlFor="arrTarget" className="text-sm font-medium">
                 ARR Target
               </label>
-              <input
-                id="arrTarget"
-                type="number"
-                inputMode="numeric"
-                value={arrTarget}
-                onChange={(e) => setArrTarget(Number(e.target.value))}
-                className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-800 dark:bg-gray-950"
-              />
-              <p className="mt-1 text-xs text-gray-500">Default: $1,000,000</p>
+
+              <div className="relative mt-2">
+                <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-gray-500">
+                  $
+                </span>
+
+                <input
+                  id="arrTarget"
+                  type="text"
+                  inputMode="numeric"
+                  value={arrTargetStr}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/,/g, '')
+                    setArrTargetStr(raw)
+                  }}
+                  onBlur={() => {
+                    const raw = arrTargetStr.replace(/,/g, '').trim()
+
+                    if (raw === '') {
+                      setArrTargetStr('1,000,000')
+                      return
+                    }
+
+                    const n = Number(raw)
+
+                    if (Number.isFinite(n)) {
+                      setArrTargetStr(
+                        new Intl.NumberFormat('en-US', {
+                          maximumFractionDigits: 0,
+                        }).format(n)
+                      )
+                    }
+                  }}
+                  className="w-full rounded-xl border border-gray-200 bg-white py-2 pr-3 pl-7 text-sm dark:border-gray-800 dark:bg-gray-950"
+                />
+              </div>
+
+              <p className="mt-1 text-xs text-gray-500">
+                Enter your annual recurring revenue (ARR) target
+              </p>
             </div>
 
             <div>
@@ -175,28 +232,55 @@ export default function ArrRealityCheck() {
                 id="months"
                 type="number"
                 inputMode="numeric"
-                value={months}
-                onChange={(e) => setMonths(Number(e.target.value))}
+                value={monthsStr}
+                onChange={(e) => setMonthsStr(e.target.value)}
+                onBlur={() => {
+                  if (monthsStr.trim() === '') setMonthsStr('36')
+                }}
                 className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-800 dark:bg-gray-950"
               />
-              <p className="mt-1 text-xs text-gray-500">Default: 36</p>
+              <p className="mt-1 text-xs text-gray-500">Your timeline for reaching the target</p>
             </div>
 
             <div>
               <label htmlFor="monthlyPrice" className="text-sm font-medium">
                 Monthly Price
               </label>
-              <input
-                id="monthlyPrice"
-                type="number"
-                inputMode="decimal"
-                value={monthlyPrice}
-                onChange={(e) => setMonthlyPrice(Number(e.target.value))}
-                className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-800 dark:bg-gray-950"
-              />
-              <p className="mt-1 text-xs text-gray-500">Default: $20</p>
-            </div>
 
+              <div className="relative mt-2">
+                <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-gray-500">
+                  $
+                </span>
+
+                <input
+                  id="monthlyPrice"
+                  type="text"
+                  inputMode="decimal"
+                  value={monthlyPriceStr}
+                  onChange={(e) => setMonthlyPriceStr(e.target.value)}
+                  onBlur={() => {
+                    const raw = monthlyPriceStr.trim()
+
+                    if (raw === '') {
+                      setMonthlyPriceStr('20')
+                      return
+                    }
+
+                    const n = Number(raw)
+
+                    if (Number.isFinite(n)) {
+                      setMonthlyPriceStr(
+                        new Intl.NumberFormat('en-US', {
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 2,
+                        }).format(n)
+                      )
+                    }
+                  }}
+                  className="w-full rounded-xl border border-gray-200 bg-white py-2 pr-3 pl-7 text-sm dark:border-gray-800 dark:bg-gray-950"
+                />
+              </div>
+            </div>
             <button
               type="button"
               onClick={() => setAdvancedOpen((v) => !v)}
@@ -273,19 +357,32 @@ export default function ArrRealityCheck() {
             <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">{summary}</p>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Stat label="Paying users (total)" value={formatCompact(outputs.paidUsersTotal)} />
-            <Stat label="New paid / month" value={formatCompact(outputs.paidUsersPerMonth)} />
-            <Stat label="Trials (total)" value={formatCompact(outputs.trialsTotal)} />
-            <Stat label="Trials / month" value={formatCompact(outputs.trialsPerMonth)} />
-            <Stat label="Visits (total)" value={formatCompact(outputs.visitsTotal)} />
-            <Stat label="Visits / month" value={formatCompact(outputs.visitsPerMonth)} />
-            <Stat label="Exposures (total)" value={formatCompact(outputs.exposuresTotal)} />
-            <Stat label="Exposures / month" value={formatCompact(outputs.exposuresPerMonth)} />
+          <div className="space-y-6">
+            <ResultsSection title="Customers">
+              <Stat label="Paying users (total)" value={formatCompact(outputs.paidUsersTotal)} />
+              <Stat label="New paid / month" value={formatCompact(outputs.paidUsersPerMonth)} />
+            </ResultsSection>
+
+            <ResultsSection title="Trials">
+              <Stat label="Trials (total)" value={formatCompact(outputs.trialsTotal)} />
+              <Stat label="Trials / month" value={formatCompact(outputs.trialsPerMonth)} />
+            </ResultsSection>
+
+            <ResultsSection title="Visits">
+              <Stat label="Visits (total)" value={formatCompact(outputs.visitsTotal)} />
+              <Stat label="Visits / month" value={formatCompact(outputs.visitsPerMonth)} />
+            </ResultsSection>
+
+            <ResultsSection title="Exposures">
+              <Stat label="Exposures (total)" value={formatCompact(outputs.exposuresTotal)} />
+              <Stat label="Exposures / month" value={formatCompact(outputs.exposuresPerMonth)} />
+            </ResultsSection>
           </div>
 
           <div className="mt-5 rounded-xl border border-gray-200 p-4 text-xs text-gray-600 dark:border-gray-800 dark:text-gray-300">
-            <p className="font-medium text-gray-800 dark:text-gray-200">Assumptions</p>
+            <p className="font-medium text-gray-800 dark:text-gray-200">
+              Assumptions {isCustom ? '(Custom)' : `(${SCENARIOS[scenario].label})`}
+            </p>
             <ul className="mt-2 list-disc space-y-1 pl-4">
               <li>Single-seat SaaS, monthly billing.</li>
               <li>Funnel model: exposure → visit → trial → paid.</li>
@@ -298,6 +395,15 @@ export default function ArrRealityCheck() {
         </div>
       </div>
     </div>
+  )
+}
+
+function ResultsSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section>
+      <p className="mb-2 text-sm font-medium">{title}</p>
+      <div className="grid gap-3 sm:grid-cols-2">{children}</div>
+    </section>
   )
 }
 
