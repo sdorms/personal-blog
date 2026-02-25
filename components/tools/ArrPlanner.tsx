@@ -1,0 +1,417 @@
+'use client'
+
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import {
+  SCENARIOS,
+  ScenarioKey,
+  computeArrRealityCheck,
+  formatCompact,
+  Rates,
+} from '@/lib/arr-planner'
+
+function parseNumber(value: string | null, fallback: number) {
+  if (!value) return fallback
+  const n = Number(value)
+  return Number.isFinite(n) ? n : fallback
+}
+
+function parseScenario(value: string | null): ScenarioKey {
+  if (value === 'conservative' || value === 'base' || value === 'strong') return value
+  return 'base'
+}
+
+function parsePositiveNumberFromString(s: string, fallback: number) {
+  const n = Number(s)
+  return Number.isFinite(n) && n > 0 ? n : fallback
+}
+
+function toPercentString(x01: number) {
+  return String(Math.round(x01 * 1000) / 10) // one decimal percent
+}
+
+function fromPercentInput(s: string, fallback01: number) {
+  const n = Number(s)
+  if (!Number.isFinite(n)) return fallback01
+  return Math.max(0, Math.min(1, n / 100))
+}
+
+export default function ArrRealityCheck() {
+  // hooks
+  const router = useRouter()
+  const pathname = usePathname()
+  const params = useSearchParams()
+
+  // state
+  const initialScenario = parseScenario(params.get('scenario'))
+  const [scenario, setScenario] = useState<ScenarioKey>(initialScenario)
+
+  const [arrTargetStr, setArrTargetStr] = useState(() =>
+    String(parseNumber(params.get('arr'), 1_000_000))
+  )
+  const [monthsStr, setMonthsStr] = useState(() => String(parseNumber(params.get('months'), 36)))
+  const [monthlyPriceStr, setMonthlyPriceStr] = useState(() =>
+    String(parseNumber(params.get('price'), 20))
+  )
+
+  const arrTarget = parsePositiveNumberFromString(arrTargetStr.replace(/,/g, ''), 1_000_000)
+  const months = Math.round(parsePositiveNumberFromString(monthsStr, 36))
+  const monthlyPrice = parsePositiveNumberFromString(monthlyPriceStr.replace(/,/g, ''), 20)
+
+  const [advancedOpen, setAdvancedOpen] = useState(false)
+
+  const [rates, setRates] = useState<Rates>(() => {
+    const preset = SCENARIOS[initialScenario].rates
+    // Allow overrides via query params, fallback to preset
+
+    return {
+      exposureToVisit: params.get('e2v')
+        ? fromPercentInput(params.get('e2v')!, preset.exposureToVisit)
+        : preset.exposureToVisit,
+      visitToTrial: params.get('v2t')
+        ? fromPercentInput(params.get('v2t')!, preset.visitToTrial)
+        : preset.visitToTrial,
+      trialToPaid: params.get('t2p')
+        ? fromPercentInput(params.get('t2p')!, preset.trialToPaid)
+        : preset.trialToPaid,
+    }
+  })
+
+  const [ratesMode, setRatesMode] = useState<'preset' | 'custom'>('preset')
+
+  const presetRates = SCENARIOS[scenario].rates
+  const isCustom =
+    rates.exposureToVisit !== presetRates.exposureToVisit ||
+    rates.visitToTrial !== presetRates.visitToTrial ||
+    rates.trialToPaid !== presetRates.trialToPaid
+
+  // effects
+  useEffect(() => {
+    if (ratesMode === 'preset') {
+      setRates(SCENARIOS[scenario].rates)
+    }
+  }, [scenario, ratesMode])
+
+  // 3) Sync state -> URL query params (shareable)
+  useEffect(() => {
+    const sp = new URLSearchParams()
+    sp.set('scenario', scenario)
+
+    sp.set('arr', String(Math.round(arrTarget)))
+    sp.set('months', String(Math.round(months)))
+    sp.set('price', String(monthlyPrice))
+
+    sp.set('e2v', toPercentString(rates.exposureToVisit))
+    sp.set('v2t', toPercentString(rates.visitToTrial))
+    sp.set('t2p', toPercentString(rates.trialToPaid))
+
+    router.replace(`${pathname}?${sp.toString()}`, { scroll: false })
+  }, [scenario, arrTargetStr, monthsStr, monthlyPriceStr, rates, router, pathname])
+
+  // memos
+  const outputs = useMemo(
+    () =>
+      computeArrRealityCheck({
+        arrTarget,
+        months,
+        monthlyPrice,
+        rates,
+      }),
+    [arrTarget, months, monthlyPrice, rates]
+  )
+
+  const summary = useMemo(() => {
+    const paidPerMonth = outputs.paidUsersPerMonth
+    const visitsPerMonth = outputs.visitsPerMonth
+
+    if (!Number.isFinite(visitsPerMonth)) {
+      return `One of your conversion rates is set to 0%, which makes required traffic infinite.`
+    }
+
+    if (monthlyPrice <= 20 && paidPerMonth > 150) {
+      return `At this price point, the constraint is likely distribution. You’re signing ~${formatCompact(
+        paidPerMonth
+      )} new paid users/month, which implies ~${formatCompact(visitsPerMonth)} visits/month.`
+    }
+
+    return `You need ~${formatCompact(paidPerMonth)} new paid users/month, implying ~${formatCompact(
+      visitsPerMonth
+    )} visits/month under your current assumptions.`
+  }, [outputs, monthlyPrice])
+
+  return (
+    <div className="mx-auto max-w-5xl px-4 py-10">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold tracking-tight">ARR Reality Check</h1>
+        <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+          Use this calculator to estimate what your funnel needs to look like in order to hit your
+          revenue goals.
+        </p>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Inputs */}
+        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-950">
+          <div className="mb-4">
+            <p className="text-sm font-medium">Scenario</p>
+            <div className="mt-2 grid grid-cols-3 gap-2">
+              {Object.entries(SCENARIOS).map(([key, cfg]) => {
+                const k = key as ScenarioKey
+                const active = k === scenario
+                return (
+                  <button
+                    key={k}
+                    onClick={() => setScenario(k)}
+                    className={[
+                      'rounded-xl border px-3 py-2 text-sm',
+                      active
+                        ? 'border-gray-900 bg-gray-900 text-white dark:border-white dark:bg-white dark:text-black'
+                        : 'border-gray-200 bg-white hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-950 dark:hover:bg-gray-900',
+                    ].join(' ')}
+                    type="button"
+                  >
+                    {cfg.label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="arrTarget" className="text-sm font-medium">
+                ARR Target
+              </label>
+
+              <div className="relative mt-2">
+                <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-gray-500">
+                  $
+                </span>
+
+                <input
+                  id="arrTarget"
+                  type="text"
+                  inputMode="numeric"
+                  value={arrTargetStr}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/,/g, '')
+                    setArrTargetStr(raw)
+                  }}
+                  onBlur={() => {
+                    const raw = arrTargetStr.replace(/,/g, '').trim()
+
+                    if (raw === '') {
+                      setArrTargetStr('1,000,000')
+                      return
+                    }
+
+                    const n = Number(raw)
+
+                    if (Number.isFinite(n)) {
+                      setArrTargetStr(
+                        new Intl.NumberFormat('en-US', {
+                          maximumFractionDigits: 0,
+                        }).format(n)
+                      )
+                    }
+                  }}
+                  className="w-full rounded-xl border border-gray-200 bg-white py-2 pr-3 pl-7 text-sm dark:border-gray-800 dark:bg-gray-950"
+                />
+              </div>
+
+              <p className="mt-1 text-xs text-gray-500">
+                Enter your annual recurring revenue (ARR) target
+              </p>
+            </div>
+
+            <div>
+              <label htmlFor="months" className="text-sm font-medium">
+                Time Horizon (months)
+              </label>
+              <input
+                id="months"
+                type="number"
+                inputMode="numeric"
+                value={monthsStr}
+                onChange={(e) => setMonthsStr(e.target.value)}
+                onBlur={() => {
+                  if (monthsStr.trim() === '') setMonthsStr('36')
+                }}
+                className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-800 dark:bg-gray-950"
+              />
+              <p className="mt-1 text-xs text-gray-500">Your timeline for reaching the target</p>
+            </div>
+
+            <div>
+              <label htmlFor="monthlyPrice" className="text-sm font-medium">
+                Monthly Price
+              </label>
+
+              <div className="relative mt-2">
+                <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-gray-500">
+                  $
+                </span>
+
+                <input
+                  id="monthlyPrice"
+                  type="text"
+                  inputMode="decimal"
+                  value={monthlyPriceStr}
+                  onChange={(e) => setMonthlyPriceStr(e.target.value)}
+                  onBlur={() => {
+                    const raw = monthlyPriceStr.trim()
+
+                    if (raw === '') {
+                      setMonthlyPriceStr('20')
+                      return
+                    }
+
+                    const n = Number(raw)
+
+                    if (Number.isFinite(n)) {
+                      setMonthlyPriceStr(
+                        new Intl.NumberFormat('en-US', {
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 2,
+                        }).format(n)
+                      )
+                    }
+                  }}
+                  className="w-full rounded-xl border border-gray-200 bg-white py-2 pr-3 pl-7 text-sm dark:border-gray-800 dark:bg-gray-950"
+                />
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setAdvancedOpen((v) => !v)}
+              className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-900"
+            >
+              {advancedOpen ? 'Hide' : 'Show'} advanced assumptions
+            </button>
+
+            {advancedOpen && (
+              <div className="space-y-3 rounded-xl border border-gray-200 p-4 dark:border-gray-800">
+                <div>
+                  <label htmlFor="e2v" className="text-sm font-medium">
+                    Exposure → Visit (%)
+                  </label>
+                  <input
+                    id="e2v"
+                    type="number"
+                    inputMode="decimal"
+                    value={toPercentString(rates.exposureToVisit)}
+                    onChange={(e) =>
+                      setRates((r) => ({
+                        ...r,
+                        exposureToVisit: fromPercentInput(e.target.value, r.exposureToVisit),
+                      }))
+                    }
+                    className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-800 dark:bg-gray-950"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="v2t" className="text-sm font-medium">
+                    Visit → Trial (%)
+                  </label>
+                  <input
+                    id="v2t"
+                    type="number"
+                    inputMode="decimal"
+                    value={toPercentString(rates.visitToTrial)}
+                    onChange={(e) =>
+                      setRates((r) => ({
+                        ...r,
+                        visitToTrial: fromPercentInput(e.target.value, r.visitToTrial),
+                      }))
+                    }
+                    className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-800 dark:bg-gray-950"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="t2p" className="text-sm font-medium">
+                    Trial → Paid (%)
+                  </label>
+                  <input
+                    id="t2p"
+                    type="number"
+                    inputMode="decimal"
+                    value={toPercentString(rates.trialToPaid)}
+                    onChange={(e) =>
+                      setRates((r) => ({
+                        ...r,
+                        trialToPaid: fromPercentInput(e.target.value, r.trialToPaid),
+                      }))
+                    }
+                    className="mt-2 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-800 dark:bg-gray-950"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Outputs */}
+        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-950">
+          <div className="mb-4">
+            <p className="text-sm font-medium">Results</p>
+            <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">{summary}</p>
+          </div>
+
+          <div className="space-y-6">
+            <ResultsSection title="Customers">
+              <Stat label="Paying users (total)" value={formatCompact(outputs.paidUsersTotal)} />
+              <Stat label="New paid / month" value={formatCompact(outputs.paidUsersPerMonth)} />
+            </ResultsSection>
+
+            <ResultsSection title="Trials">
+              <Stat label="Trials (total)" value={formatCompact(outputs.trialsTotal)} />
+              <Stat label="Trials / month" value={formatCompact(outputs.trialsPerMonth)} />
+            </ResultsSection>
+
+            <ResultsSection title="Visits">
+              <Stat label="Visits (total)" value={formatCompact(outputs.visitsTotal)} />
+              <Stat label="Visits / month" value={formatCompact(outputs.visitsPerMonth)} />
+            </ResultsSection>
+
+            <ResultsSection title="Exposures">
+              <Stat label="Exposures (total)" value={formatCompact(outputs.exposuresTotal)} />
+              <Stat label="Exposures / month" value={formatCompact(outputs.exposuresPerMonth)} />
+            </ResultsSection>
+          </div>
+
+          <div className="mt-5 rounded-xl border border-gray-200 p-4 text-xs text-gray-600 dark:border-gray-800 dark:text-gray-300">
+            <p className="font-medium text-gray-800 dark:text-gray-200">
+              Assumptions {isCustom ? '(Custom)' : `(${SCENARIOS[scenario].label})`}
+            </p>
+            <ul className="mt-2 list-disc space-y-1 pl-4">
+              <li>Single-seat SaaS, monthly billing.</li>
+              <li>Funnel model: exposure → visit → trial → paid.</li>
+              <li>
+                Rates: {toPercentString(rates.exposureToVisit)}% →{' '}
+                {toPercentString(rates.visitToTrial)}% → {toPercentString(rates.trialToPaid)}%
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ResultsSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section>
+      <p className="mb-2 text-sm font-medium">{title}</p>
+      <div className="grid gap-3 sm:grid-cols-2">{children}</div>
+    </section>
+  )
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-gray-200 p-4 dark:border-gray-800">
+      <p className="text-xs text-gray-500">{label}</p>
+      <p className="mt-1 text-xl font-semibold">{value}</p>
+    </div>
+  )
+}

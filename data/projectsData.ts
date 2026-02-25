@@ -12,6 +12,12 @@ const projectsData: Project[] = [
     imgSrc: '/static/images/site_screenshot.png',
     href: '/blog/experiment-1/',
   },
+  {
+    title: 'ARR Calculator',
+    description: `Estimate the level of traction you need to hit your revenue goals.`,
+    imgSrc: '/static/images/arr_calculator.png',
+    href: '/tools/arr-planner/',
+  },
 ]
 
 export default projectsData
