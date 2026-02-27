@@ -1,0 +1,129 @@
+---
+title: 'Experiment 2: ARR Calculator'
+date: '2026-02-27'
+tags: ['shipping', 'startup ideas']
+draft: false
+summary: 'Give your growth targets a reality check.'
+---
+
+# Introduction
+
+Building has never been cheaper. Distribution has never been more competitive.
+
+For example, to hit \$1M ARR at \$20/mo, you need 4,167 paying customers, which equates to acquiring 115 new paying users every month for 3 years.
+
+With a realistic funnel conversion of:
+
+- 5% exposure to visit
+- 6% visit to free trial
+- 25% free trial conversion
+
+That implies that you’d need around 15,000 visits per month and around 300,000 exposures per month. This also assumes net acquisition. When you factor in churn, those numbers are likely even higher.
+
+Ask yourself honestly: Do you currently have a reliable path to 300,000 exposures per month?
+
+Many founders skip the distribution math, so I built a simple tool to make that math quick and simple.
+
+With that in mind, it was time to get started.
+
+## Experiment Summary
+
+I framed this as a simple experiment: can I build a tool in a few days that makes distribution math stand out, and does it resonate with other founders?
+
+#### Problem
+
+Most founders validate ideas qualitatively. We think about market size, product quality, excitement, competition. But many rarely run the distribution math properly. It’s too easy to get excited about an idea without stress-testing whether we can realistically acquire the customers required to hit our goals.
+Discovery tooling today largely asks: “Is this a good idea?” but I wanted this tool to help founders to focus on the question: “How hard will this be to distribute?”
+
+#### Hypothesis
+
+If founders can see the distribution math clearly before committing, they will either:
+
+- Raise their ambition
+- Kill bad ideas faster
+
+Helping founders to accelerate discovery and validation will build a founder community around the tooling.
+
+#### Success Criteria
+
+Build:
+
+- Develop and ship a useful tool in a few days
+- Make it shareable
+
+Distribution/usage
+
+- Positive community feedback and usage
+- Evidence that people are using it in real idea assessments
+
+#### Why now?
+
+[Stripe’s 2025 update](https://stripe.com/es-us/newsroom/news/stripe-2025-update) shows that more startups than ever are joining the platform, and that the newest cohort is growing roughly 50% faster than the prior year.
+
+In other words, more founders are building, scaling, and monetizing, and they’re doing it faster than before. That’s great news for builders, but it also means competition for attention and distribution is fiercer than ever, so founders need to think through the underlying math.
+
+#### Why this fits my roadmap
+
+This is also a good fit for me right now because it fits well with [three key challenges I’m currently focusing on](/blog/experiment-1/):
+
+- Building technical fluency
+- Building distribution
+- Choosing the right problem
+
+It’s reusable for me. It’s simple enough to ship quickly. And it creates a natural path to iterate into more advanced discovery tools over time.
+
+## Discovery
+
+Search interest around startup ideas has spiked since mid-2025 and [communities discussing idea validation](https://www.reddit.com/r/Startup_Ideas/) are highly active.
+
+![Google Trends Data for startup ideas showing an increase in interest in mid-2025](/static/images/blog_posts/experiment_2/trends_data.png)
+
+![Google Trends Data for startup validation showing an increase in interest in mid-2025](/static/images/blog_posts/experiment_2/trends_data2.png)
+
+When I looked up existing tools, I found that most are tailored toward broad, generalist idea generation and validation. They tend to ask “is this a good idea?” whereas this tool focuses on “how hard will this be?”.
+
+Another insight from this research was structural: discovery tooling alone has a retention issue. Once founders have chosen a project, they are likely to stop searching. That makes it difficult to build a sustainable standalone business around discovery.
+
+Therefore, this build isn’t intended to be a product in isolation. It’s a starting point to build a broader founder tooling ecosystem rather than a standalone SaaS.
+
+## Scoping
+
+I could eventually build a full discovery framework, but for a first step, the tool needed to be strongly focused and simple.
+
+Users should be able to enter:
+
+- Target ARR
+- Time horizon
+- Pricing and funnel assumptions
+
+The calculator then tells you how many customers and how much distribution you’ll need to get there.
+
+In order to keep this as simple as possible, I omitted churn modelling, complex visualizations and different business model permutations from the v1.
+
+## Build summary
+
+Now that I had my plan in place, it was time to build and over the course of two afternoons I managed to get it shipped.
+
+The core calculator engine came together quickly, but I ran into issues in the final mile with things like accessibility rules, path alias resolution and URL state syncing. These types of challenges are where the gap between vibe coder and developer really stands out, and they’re likely to keep scaring off many builders in the near term.
+
+By the end of day one, the ARR engine was calculating correctly with shareable URL state. Day two was spent tightening UX, formatting currency properly, fixing edge cases, and deploying.
+
+It’s a simple build by design but I’m happy with how it turned out. Over time I expect to improve the UI and build out the model functionality.
+
+## What surprised me
+
+When you dig in, the math is more confronting than it first appears.
+
+At low price points, scale compounds quickly. It’s easy to think that a $20/month requires just a few thousand users, whereas the reality is that it requires a reliable engine for acquiring hundreds of new paying customers every month, which in most cases translates into tens of thousands of visits and hundreds of thousands of exposures.
+
+Small changes in conversion rates have considerable impact. Moving a funnel step’s conversion from 5% to 7% significantly changes the traffic requirement, which means that distribution and funnel optimisation shape the scale of the challenge.
+
+What’s more, this model doesn’t even include churn yet. Once retention enters the equation, the required acquisition numbers become even more demanding. High churn multiplies the distribution burden and slows growth.
+
+None of this means that low-priced products can’t work - many do. However, the real question is whether you’re solving the right problem well enough and can build the reach, conversion, and retention required to make your version succeed.
+
+Hopefully this calculator can help you to make that honest assessment and either move forward with your idea or kill it and move on.
+
+You can [see the calculator here](/tools/arr-planner/). Let me know how you got on or if there are any improvements you’d like.
+
+If you liked reading, please go ahead and subscribe to my newsletter for regular updates.
