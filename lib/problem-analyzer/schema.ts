@@ -12,6 +12,7 @@ export type Option = {
 export type Question = {
   id: QuestionId
   title: string
+  shortLabel?: string
   description?: string
   // 10 = highest importance
   priorityRank: number
@@ -65,6 +66,7 @@ export const QUESTIONS: Record<string, Question> = {
   customer_action: {
     id: 'customer_action',
     title: 'What are customers currently doing about this problem?',
+    shortLabel: 'Current customer action',
     description: 'This measures how much education the market requires before buying.',
     priorityRank: 9,
     takeaways: {
@@ -108,6 +110,7 @@ export const QUESTIONS: Record<string, Question> = {
   why_now: {
     id: 'why_now',
     title: 'What makes this problem especially timely right now?',
+    shortLabel: 'Why now catalyst',
     description:
       'Strong startups often ride a shift — in technology, regulation, distribution, or customer behavior. If nothing has changed, you should be clear on why this opportunity exists now and not five years ago.',
     priorityRank: 6,
@@ -161,6 +164,7 @@ export const QUESTIONS: Record<string, Question> = {
   icp_clarity: {
     id: 'icp_clarity',
     title: 'How precisely can you define the group that experiences this problem?',
+    shortLabel: 'ICP clarity',
     description:
       'Strong early-stage startups usually begin with a clearly defined niche. The more precisely you can describe the group experiencing this problem, the easier it is to test, reach, and refine your solution. Specific ICP reduces GTM friction.',
     priorityRank: 8,
@@ -212,6 +216,7 @@ export const QUESTIONS: Record<string, Question> = {
   frequency: {
     id: 'frequency',
     title: 'For your target customer, how often does this problem meaningfully occur?',
+    shortLabel: 'Problem frequency',
     description:
       'High-frequency problems are easier to build habits around and often easier to monetize. Low-frequency problems must be especially painful or high-value to justify a product.',
     priorityRank: 7,
@@ -260,6 +265,7 @@ export const QUESTIONS: Record<string, Question> = {
   severity: {
     id: 'severity',
     title: 'What happens if this problem remains unsolved?',
+    shortLabel: 'Problem severity',
     description:
       'Severe problems are easier to prioritize and monetize. If the consequences are small, customers are less likely to change behavior or pay.',
     priorityRank: 9,
@@ -308,6 +314,7 @@ export const QUESTIONS: Record<string, Question> = {
   economic_impact: {
     id: 'economic_impact',
     title: 'How directly does this problem impact money?',
+    shortLabel: 'Economic impact',
     description: 'The problem does not directly affect money or cost.',
     priorityRank: 10,
     takeaways: {
@@ -355,6 +362,7 @@ export const QUESTIONS: Record<string, Question> = {
   current_solution: {
     id: 'current_solution',
     title: 'How are customers currently solving this problem?',
+    shortLabel: 'Current solution behavior',
     description:
       'If customers are already taking action, even inefficiently, that provides validation. Inaction often signals low urgency.',
     priorityRank: 9,
@@ -403,6 +411,7 @@ export const QUESTIONS: Record<string, Question> = {
   solution_quality: {
     id: 'solution_quality',
     title: 'How well do current solutions actually solve the problem?',
+    shortLabel: 'Solution quality gap',
     description:
       'The better existing solutions are, the harder it will be to displace them. Weak or frustrating workarounds create opportunity.',
     priorityRank: 6,
@@ -451,6 +460,7 @@ export const QUESTIONS: Record<string, Question> = {
   validation: {
     id: 'validation',
     title: 'What concrete validation evidence do you have so far?',
+    shortLabel: 'Validation evidence',
     description:
       'The strongest validation comes from real behavior, not opinions. Revenue and commitments outweigh interviews; interviews outweigh assumptions.',
     priorityRank: 10,

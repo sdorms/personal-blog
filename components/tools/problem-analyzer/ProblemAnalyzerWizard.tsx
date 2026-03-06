@@ -14,13 +14,7 @@ import {
   type OptionId,
   type QuestionId,
 } from '@/lib/problem-analyzer/schema'
-import {
-  classifyOverall,
-  pickRisksOrConstraints,
-  pickStrengths,
-  scoreAnswers,
-  type AnswersMap,
-} from '@/lib/problem-analyzer/score'
+import { buildResultsViewModel, scoreAnswers, type AnswersMap } from '@/lib/problem-analyzer/score'
 
 type Confidence = 'high' | 'med' | 'low' | 'vlow'
 
@@ -206,26 +200,32 @@ export default function ProblemAnalyzerWizard() {
   )
 
   const resultModel: ResultModel = useMemo(() => {
-    const strengths = pickStrengths(scored.perQuestion, PROBLEM_ANALYZER_SCHEMA)
-    const risksOrConstraints = pickRisksOrConstraints(scored.perQuestion, PROBLEM_ANALYZER_SCHEMA)
-    const hasBucket1 = scored.perQuestion.some((item) => item.bucketLevel === 1)
-    const hasBucket4 = scored.perQuestion.some((item) => item.bucketLevel === 4)
+    const baseViewModel = buildResultsViewModel(
+      scored,
+      PROBLEM_ANALYZER_SCHEMA,
+      conf,
+      orderedUniqueQuestionIds(uncertain)
+    )
     const uncertainTitles = orderedUniqueQuestionIds(uncertain)
       .map((id) => PROBLEM_ANALYZER_SCHEMA.questions[id]?.title)
       .filter((title): title is string => Boolean(title))
 
     return {
-      tier: classifyOverall(scored.percent),
-      percent: scored.percent,
+      problemText,
+      tier: baseViewModel.tier,
+      percent: baseViewModel.percent,
       isComplete: scored.perQuestion.length === allQuestionIds.length,
-      strengthsKind: hasBucket1 ? 'strengths' : 'signals',
-      risksKind: hasBucket4 ? 'risks' : 'constraints',
-      strengths,
-      risksOrConstraints,
+      strengths: baseViewModel.strengths,
+      risksOrConstraints: baseViewModel.risksOrConstraints,
+      allInsights: baseViewModel.allInsights,
+      bucketCounts: baseViewModel.bucketCounts,
+      screenDiagnostics: baseViewModel.screenDiagnostics,
+      summaryMessage: baseViewModel.summaryMessage,
       conf,
       uncertainTitles,
+      uncertainQuestionIds: orderedUniqueQuestionIds(uncertain),
     }
-  }, [allQuestionIds.length, conf, scored, uncertain])
+  }, [allQuestionIds.length, conf, problemText, scored, uncertain])
 
   const toggleUncertain = (questionId: QuestionId) => {
     setUncertain((current) =>
@@ -437,7 +437,7 @@ export default function ProblemAnalyzerWizard() {
         </div>
       ) : (
         <div className="space-y-6">
-          <ResultsPanel result={resultModel} />
+          <ResultsPanel result={resultModel} onProblemTextChange={setProblemText} />
           <div className="flex justify-between">
             <button
               type="button"

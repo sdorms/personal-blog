@@ -1,9 +1,7 @@
-import type {
-  Option,
-  OptionId,
-  ProblemAnalyzerSchema,
-  QuestionId,
-} from '@/lib/problem-analyzer/schema'
+// NOTE: maxTotal includes all questions even if unanswered.
+// If we later allow partial completion, consider switching to answered-only maxTotal.
+
+import type { OptionId, ProblemAnalyzerSchema, QuestionId } from '@/lib/problem-analyzer/schema'
 
 export type AnswersMap = Record<QuestionId, OptionId | undefined>
 
@@ -37,17 +35,80 @@ export type InsightItem = {
 
 export type OverallTier = 'strong' | 'mixed' | 'weak'
 
+export type BucketCounts = {
+  strongCount: number
+  neutralCount: number
+  riskCount: number
+  totalResponses: number
+}
+
+export type ScreenDiagnostic = {
+  screenId: string
+  title: string
+  perQuestion: PerQuestionScore[]
+  screenTotalScore: number
+  screenMaxTotalScore: number
+  screenPercent: number
+  screenTier: OverallTier
+  strongCount: number
+  neutralCount: number
+  riskCount: number
+  explanation?: string
+}
+
+export type FullInsightItem = InsightItem
+
+export type GroupedAllInsights = {
+  strengths: FullInsightItem[]
+  needsValidation: FullInsightItem[]
+  risks: FullInsightItem[]
+}
+
+export type ConfidenceLevel = 'high' | 'med' | 'low' | 'vlow'
+
+export type ResultsViewModel = {
+  tier: OverallTier
+  percent: number
+  strengths: InsightItem[]
+  risksOrConstraints: InsightItem[]
+  bucketCounts: BucketCounts
+  screenDiagnostics: ScreenDiagnostic[]
+  allInsights: GroupedAllInsights
+  summaryMessage: string
+  conf: ConfidenceLevel
+  uncertain: QuestionId[]
+}
+
+const FALLBACK_TAKEAWAYS = {
+  strong: ['TODO: Add strong takeaway variant A.', 'TODO: Add strong takeaway variant B.'],
+  weak: ['TODO: Add weak takeaway variant A.', 'TODO: Add weak takeaway variant B.'],
+} as const
+
 function clamp01(value: number) {
   if (!Number.isFinite(value)) return 0
   return Math.max(0, Math.min(1, value))
 }
 
-function getSelectedOption(
+function sortByPriorityDesc<T extends { priorityRank: number }>(items: T[]) {
+  // priorityRank: higher = more important (10 highest)
+  return [...items].sort((a, b) => b.priorityRank - a.priorityRank)
+}
+
+function pickTopN<T>(items: T[], n: number) {
+  return items.slice(0, n)
+}
+
+function sum(numbers: number[]) {
+  return numbers.reduce((acc, value) => acc + value, 0)
+}
+
+function getQuestionPriorityRank(
   schema: ProblemAnalyzerSchema,
   questionId: QuestionId,
-  optionId: OptionId
-): Option | undefined {
-  return schema.questions[questionId]?.options.find((option) => option.id === optionId)
+  fallback = 0
+) {
+  const rank = schema.questions[questionId]?.priorityRank
+  return typeof rank === 'number' ? rank : fallback
 }
 
 export function stableVariantIndex(seedString: string, n: number): number {
@@ -65,15 +126,19 @@ export function scoreAnswers(answers: AnswersMap, schema: ProblemAnalyzerSchema)
   let maxTotal = 0
 
   for (const question of Object.values(schema.questions)) {
-    const maxScore = Math.max(...question.options.map((option) => option.score))
-    maxTotal += maxScore
+    const maxScore =
+      question.options.length > 0 ? Math.max(...question.options.map((option) => option.score)) : 0
 
     const optionId = answers[question.id]
     const selected = question.options.find((option) => option.id === optionId)
 
     if (!selected) continue
 
+    maxTotal += maxScore
+
     total += selected.score
+
+    const priorityRank = getQuestionPriorityRank(schema, question.id, 0)
 
     perQuestion.push({
       questionId: question.id,
@@ -83,7 +148,7 @@ export function scoreAnswers(answers: AnswersMap, schema: ProblemAnalyzerSchema)
       score: selected.score,
       maxScore,
       bucketLevel: selected.bucketLevel,
-      priorityRank: selected.priorityRank,
+      priorityRank,
     })
   }
 
@@ -98,27 +163,13 @@ export function classifyOverall(percent: number): OverallTier {
   return 'weak'
 }
 
-function sortByPriorityDesc(items: PerQuestionScore[]) {
-  // priorityRank: higher = more important (10 highest)
-  return [...items].sort((a, b) => b.priorityRank - a.priorityRank)
-}
-
-function pickTopN(items: PerQuestionScore[], n: number) {
-  return items.slice(0, n)
-}
-
 function resolveTakeaway(
   item: PerQuestionScore,
   schema: ProblemAnalyzerSchema,
   mode: 'strong' | 'weak'
 ) {
-  const option = getSelectedOption(schema, item.questionId, item.optionId)
   const questionTakeaways = schema.questions[item.questionId]?.takeaways?.[mode]
-  const fallback =
-    mode === 'strong'
-      ? ['TODO: Add strong takeaway variant A.', 'TODO: Add strong takeaway variant B.']
-      : ['TODO: Add weak takeaway variant A.', 'TODO: Add weak takeaway variant B.']
-  const variants = questionTakeaways ?? option?.takeaways[mode] ?? fallback
+  const variants = questionTakeaways ?? FALLBACK_TAKEAWAYS[mode]
   const index = stableVariantIndex(`${item.questionId}:${item.optionId}`, variants.length)
   return variants[index] ?? variants[0]
 }
@@ -189,9 +240,121 @@ export function pickStrengths(
   return toInsightItems(promisingSignals, schema, 'strong')
 }
 
-/*
-Sanity-check fixture (manual):
-- If perQuestion buckets are [4(p=10), 4(p=2), 3(p=9)], pickRisksOrConstraints returns bucket-4 items in p10,p2 order.
-- If perQuestion buckets are [3(p=8), 2(p=10)] and no bucket-4, pickRisksOrConstraints returns bucket-3 item first.
-- If perQuestion buckets are [1(p=10), 1(p=6), 2(p=9)], pickStrengths returns both bucket-1 items before fallback logic.
-*/
+export function getBucketCounts(perQuestion: PerQuestionScore[]): BucketCounts {
+  const strongCount = perQuestion.filter((item) => item.bucketLevel === 1).length
+  const neutralCount = perQuestion.filter(
+    (item) => item.bucketLevel === 2 || item.bucketLevel === 3
+  ).length
+  const riskCount = perQuestion.filter((item) => item.bucketLevel === 4).length
+
+  return {
+    strongCount,
+    neutralCount,
+    riskCount,
+    totalResponses: perQuestion.length,
+  }
+}
+
+export function getScreenDiagnostics(
+  scored: ScoredResult,
+  schema: ProblemAnalyzerSchema
+): ScreenDiagnostic[] {
+  return schema.screens.map((screen) => {
+    const screenQuestionIds = new Set(screen.questionIds)
+    const perQuestion = scored.perQuestion.filter((item) => screenQuestionIds.has(item.questionId))
+    const screenTotalScore = sum(perQuestion.map((item) => item.score))
+    const screenMaxTotalScore = sum(
+      screen.questionIds.map((questionId) => {
+        const question = schema.questions[questionId]
+        if (!question) return 0
+        return question.options.length > 0
+          ? Math.max(...question.options.map((option) => option.score))
+          : 0
+      })
+    )
+    const screenPercent =
+      screenMaxTotalScore > 0 ? clamp01(screenTotalScore / screenMaxTotalScore) : 0
+    const screenTier = classifyOverall(screenPercent)
+    const counts = getBucketCounts(perQuestion)
+    const explanation =
+      screenTier === 'weak'
+        ? 'Most answers in this category indicate missing validation evidence.'
+        : screenTier === 'mixed'
+          ? 'Some signals are positive, but parts of this area need stronger validation.'
+          : undefined
+
+    return {
+      screenId: screen.id,
+      title: screen.title,
+      perQuestion,
+      screenTotalScore,
+      screenMaxTotalScore,
+      screenPercent,
+      screenTier,
+      strongCount: counts.strongCount,
+      neutralCount: counts.neutralCount,
+      riskCount: counts.riskCount,
+      explanation,
+    }
+  })
+}
+
+export function getAllInsightsGrouped(
+  scored: ScoredResult,
+  schema: ProblemAnalyzerSchema
+): GroupedAllInsights {
+  const allItems: FullInsightItem[] = scored.perQuestion.map((item) => {
+    const questionPriorityRank = getQuestionPriorityRank(schema, item.questionId, item.priorityRank)
+    const mode = item.bucketLevel === 1 ? 'strong' : 'weak'
+    return {
+      questionId: item.questionId,
+      optionId: item.optionId,
+      questionTitle: item.questionTitle,
+      optionLabel: item.optionLabel,
+      bucketLevel: item.bucketLevel,
+      priorityRank: questionPriorityRank,
+      commentary: resolveTakeaway(item, schema, mode),
+    }
+  })
+
+  return {
+    strengths: sortByPriorityDesc(allItems.filter((item) => item.bucketLevel === 1)),
+    needsValidation: sortByPriorityDesc(
+      allItems.filter((item) => item.bucketLevel === 2 || item.bucketLevel === 3)
+    ),
+    risks: sortByPriorityDesc(allItems.filter((item) => item.bucketLevel === 4)),
+  }
+}
+
+export function buildResultsViewModel(
+  scored: ScoredResult,
+  schema: ProblemAnalyzerSchema,
+  conf: ConfidenceLevel,
+  uncertain: QuestionId[]
+): ResultsViewModel {
+  const bucketCounts = getBucketCounts(scored.perQuestion)
+  const screenDiagnostics = getScreenDiagnostics(scored, schema)
+  const allInsights = getAllInsightsGrouped(scored, schema)
+  const strengths = pickTopN(pickStrengths(scored.perQuestion, schema), 3)
+  const risksOrConstraints = pickTopN(pickRisksOrConstraints(scored.perQuestion, schema), 2)
+
+  const summaryMessage =
+    bucketCounts.riskCount > 0
+      ? `Of your ${bucketCounts.totalResponses} responses, ${bucketCounts.riskCount} indicate potential risk factors worth investigating.`
+      : bucketCounts.neutralCount > 0
+        ? `Most signals are positive, but ${bucketCounts.neutralCount} responses suggest areas that may need further validation.`
+        : 'All responses indicate strong positive signal.'
+
+  return {
+    tier: classifyOverall(scored.percent),
+    percent: scored.percent,
+    strengths,
+    risksOrConstraints,
+    bucketCounts,
+    screenDiagnostics,
+    allInsights,
+    summaryMessage,
+    conf,
+    uncertain,
+  }
+}
