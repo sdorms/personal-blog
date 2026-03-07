@@ -7,11 +7,13 @@ import type {
   GroupedAllInsights,
   InsightItem,
   OverallTier,
+  QuestionConfidenceLevel,
   ScreenDiagnostic,
 } from '@/lib/problem-analyzer/score'
 
 export type ResultModel = {
   problemText: string
+  audienceText: string
   tier: OverallTier
   percent: number
   isComplete: boolean
@@ -22,6 +24,7 @@ export type ResultModel = {
   screenDiagnostics: ScreenDiagnostic[]
   summaryMessage: string
   conf: 'high' | 'med' | 'low' | 'vlow'
+  confidenceByQuestion: Partial<Record<string, QuestionConfidenceLevel>>
   uncertainTitles: string[]
   uncertainQuestionIds: string[]
 }

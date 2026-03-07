@@ -4,7 +4,7 @@ import ProblemAnalyzerWizard from '@/components/tools/problem-analyzer/ProblemAn
 export const metadata = {
   title: 'Problem Analyzer',
   description:
-    'Scaffold workflow for evaluating problem quality with placeholder schema, scoring, and confidence overlay.',
+    'Answer a short set of questions about the problem you want to solve. You’ll get a structured read on its strengths, risks, and what you should validate next.',
 }
 
 export default function Page() {

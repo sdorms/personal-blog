@@ -33,6 +33,12 @@ export type Screen = {
 
 export const SCREENS: Screen[] = [
   {
+    id: 'define-problem',
+    title: 'Define the Problem',
+    description: 'Start by describing the problem you want to evaluate and who experiences it.',
+    questionIds: [],
+  },
+  {
     id: 'problem-context',
     title: 'Problem Awareness & Context',
     description:
@@ -112,7 +118,7 @@ export const QUESTIONS: Record<string, Question> = {
     title: 'What makes this problem especially timely right now?',
     shortLabel: 'Why now catalyst',
     description:
-      'Strong startups often ride a shift — in technology, regulation, distribution, or customer behavior. If nothing has changed, you should be clear on why this opportunity exists now and not five years ago.',
+      'Strong startups often ride a shift in technology, regulation, distribution, or customer behavior. If nothing has changed, you should be clear on why this opportunity exists now and not five years ago.',
     priorityRank: 6,
     takeaways: {
       strong: [
@@ -166,7 +172,7 @@ export const QUESTIONS: Record<string, Question> = {
     title: 'How precisely can you define the group that experiences this problem?',
     shortLabel: 'ICP clarity',
     description:
-      'Strong early-stage startups usually begin with a clearly defined niche. The more precisely you can describe the group experiencing this problem, the easier it is to test, reach, and refine your solution. Specific ICP reduces GTM friction.',
+      'Strong early-stage startups usually begin with a clearly defined niche. The more precisely you can describe the group experiencing this problem, the easier it is to test, reach, and refine your solution.',
     priorityRank: 8,
     takeaways: {
       strong: [
@@ -191,7 +197,7 @@ export const QUESTIONS: Record<string, Question> = {
         id: 'defined_segment',
         label: 'Defined segment, but still somewhat broad',
         helpText:
-          'You can identify a clear category, but it still includes diverse subgroups (e.g. “freelancers”, “SMBs”). Medium.',
+          'You can identify a clear category, but it still includes diverse subgroups (e.g. “freelancers”, “SMBs”).',
         score: 14,
         bucketLevel: 2,
       },

@@ -18,6 +18,12 @@ const projectsData: Project[] = [
     imgSrc: '/static/images/arr_calculator.png',
     href: '/tools/arr-planner/',
   },
+  {
+    title: 'Problem Checker',
+    description: `Evaluate startup ideas by scoring the strength of the underlying problem`,
+    imgSrc: '/static/images/arr_calculator.png',
+    href: '/tools/problem-analyzer/',
+  },
 ]
 
 export default projectsData

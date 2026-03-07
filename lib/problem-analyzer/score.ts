@@ -64,7 +64,7 @@ export type GroupedAllInsights = {
   risks: FullInsightItem[]
 }
 
-export type ConfidenceLevel = 'high' | 'med' | 'low' | 'vlow'
+export type QuestionConfidenceLevel = 'low' | 'med' | 'high'
 
 export type ResultsViewModel = {
   tier: OverallTier
@@ -75,8 +75,7 @@ export type ResultsViewModel = {
   screenDiagnostics: ScreenDiagnostic[]
   allInsights: GroupedAllInsights
   summaryMessage: string
-  conf: ConfidenceLevel
-  uncertain: QuestionId[]
+  confidenceByQuestion: Partial<Record<QuestionId, QuestionConfidenceLevel>>
 }
 
 const FALLBACK_TAKEAWAYS = {
@@ -329,8 +328,7 @@ export function getAllInsightsGrouped(
 export function buildResultsViewModel(
   scored: ScoredResult,
   schema: ProblemAnalyzerSchema,
-  conf: ConfidenceLevel,
-  uncertain: QuestionId[]
+  confidenceByQuestion: Partial<Record<QuestionId, QuestionConfidenceLevel>>
 ): ResultsViewModel {
   const bucketCounts = getBucketCounts(scored.perQuestion)
   const screenDiagnostics = getScreenDiagnostics(scored, schema)
@@ -354,7 +352,6 @@ export function buildResultsViewModel(
     screenDiagnostics,
     allInsights,
     summaryMessage,
-    conf,
-    uncertain,
+    confidenceByQuestion,
   }
 }
