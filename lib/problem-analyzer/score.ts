@@ -1,5 +1,5 @@
-// NOTE: maxTotal includes all questions even if unanswered.
-// If we later allow partial completion, consider switching to answered-only maxTotal.
+// NOTE: maxTotal currently includes only answered questions.
+// If we later require all questions for scoring, revisit this behavior explicitly.
 
 import type { OptionId, ProblemAnalyzerSchema, QuestionId } from '@/lib/problem-analyzer/schema'
 
@@ -10,8 +10,11 @@ export type PerQuestionScore = {
   questionTitle: string
   optionId: OptionId
   optionLabel: string
+  baseScore: number
   score: number
   maxScore: number
+  confidenceLevel?: QuestionConfidenceLevel
+  confidenceMultiplier: number
   bucketLevel: 1 | 2 | 3 | 4
   priorityRank: number
 }
@@ -110,6 +113,13 @@ function getQuestionPriorityRank(
   return typeof rank === 'number' ? rank : fallback
 }
 
+function getConfidenceMultiplier(level?: QuestionConfidenceLevel): number {
+  if (level === 'high') return 1.0
+  if (level === 'med') return 0.8
+  if (level === 'low') return 0.6
+  return 1.0
+}
+
 export function stableVariantIndex(seedString: string, n: number): number {
   if (!Number.isFinite(n) || n <= 0) return 0
   let hash = 0
@@ -119,7 +129,11 @@ export function stableVariantIndex(seedString: string, n: number): number {
   return hash % n
 }
 
-export function scoreAnswers(answers: AnswersMap, schema: ProblemAnalyzerSchema): ScoredResult {
+export function scoreAnswers(
+  answers: AnswersMap,
+  schema: ProblemAnalyzerSchema,
+  confidenceByQuestion?: Partial<Record<QuestionId, QuestionConfidenceLevel>>
+): ScoredResult {
   const perQuestion: PerQuestionScore[] = []
   let total = 0
   let maxTotal = 0
@@ -135,7 +149,12 @@ export function scoreAnswers(answers: AnswersMap, schema: ProblemAnalyzerSchema)
 
     maxTotal += maxScore
 
-    total += selected.score
+    const baseScore = selected.score
+    const confidenceLevel = confidenceByQuestion?.[question.id]
+    const confidenceMultiplier = getConfidenceMultiplier(confidenceLevel)
+    const effectiveScore = baseScore * confidenceMultiplier
+
+    total += effectiveScore
 
     const priorityRank = getQuestionPriorityRank(schema, question.id, 0)
 
@@ -144,8 +163,11 @@ export function scoreAnswers(answers: AnswersMap, schema: ProblemAnalyzerSchema)
       questionTitle: question.title,
       optionId: selected.id,
       optionLabel: selected.label,
-      score: selected.score,
+      baseScore,
+      score: effectiveScore,
       maxScore,
+      confidenceLevel,
+      confidenceMultiplier,
       bucketLevel: selected.bucketLevel,
       priorityRank,
     })

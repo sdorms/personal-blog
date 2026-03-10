@@ -239,7 +239,7 @@ export default function ProblemAnalyzerWizard() {
   const progressPercent = Math.round((progressStep / totalStepsBeforeResults) * 100)
   const headerTitle = isConfidenceStep ? 'Confidence Calibration' : (currentScreen?.title ?? '')
   const headerDescription = isConfidenceStep
-    ? 'Indicate how confident you are in each answer. Lower confidence suggests areas that may require further validation. (Optional)'
+    ? 'Review your confidence in each answer.'
     : (currentScreen?.description ?? '')
 
   useEffect(() => {
@@ -249,7 +249,10 @@ export default function ProblemAnalyzerWizard() {
     }
   }, [audienceText, isHeaderEditing, problemText])
 
-  const scored = useMemo(() => scoreAnswers(answers, PROBLEM_ANALYZER_SCHEMA), [answers])
+  const scored = useMemo(
+    () => scoreAnswers(answers, PROBLEM_ANALYZER_SCHEMA, confidenceByQuestion),
+    [answers, confidenceByQuestion]
+  )
   const allQuestionIds = useMemo(
     () => Object.keys(PROBLEM_ANALYZER_SCHEMA.questions) as QuestionId[],
     []
@@ -271,6 +274,8 @@ export default function ProblemAnalyzerWizard() {
     const lowCount = Object.values(confidenceByQuestion).filter((level) => level === 'low').length
     const medCount = Object.values(confidenceByQuestion).filter((level) => level === 'med').length
     const highCount = Object.values(confidenceByQuestion).filter((level) => level === 'high').length
+    // Temporary aggregate confidence heuristic for the current results UI.
+    // Replace this once results consume per-question confidence directly.
     const derivedConf =
       lowCount >= 2
         ? 'vlow'
@@ -373,6 +378,7 @@ export default function ProblemAnalyzerWizard() {
     }
     for (const questionId of Object.keys(PROBLEM_ANALYZER_SCHEMA.questions)) {
       sp.delete(`q_${questionId}`)
+      sp.delete(`c_${questionId}`)
     }
 
     const nextQuery = sp.toString()
@@ -569,8 +575,9 @@ export default function ProblemAnalyzerWizard() {
             <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-950">
               <h2 className="text-xl font-semibold">Confidence Calibration (Optional)</h2>
               <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                Indicate how confident you are in each answer. Lower confidence suggests areas that
-                may require further validation.
+                Startup ideas often rely on assumptions early on. This step helps distinguish
+                between answers based on evidence and those based on guesswork. Lower confidence
+                usually indicates where further discovery or customer validation is needed.
               </p>
 
               <div className="mt-4 space-y-3">
@@ -587,7 +594,10 @@ export default function ProblemAnalyzerWizard() {
                           Your answer: {item.optionLabel}
                         </p>
 
-                        <div className="mt-3 flex flex-wrap items-center gap-4">
+                        <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                          Confidence level
+                        </p>
+                        <div className="mt-2 flex flex-wrap items-center gap-4">
                           {(['low', 'med', 'high'] as const).map((level) => {
                             const checked = selectedLevel === level
                             const label =
