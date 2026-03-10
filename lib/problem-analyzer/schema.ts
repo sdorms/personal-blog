@@ -9,14 +9,20 @@ export type Option = {
   bucketLevel: 1 | 2 | 3 | 4
 }
 
+export type NextFocusType = 'validate' | 'behavior_change' | 'refine_problem' | 'reconsider'
+
 export type Question = {
   id: QuestionId
   title: string
-  shortLabel?: string
+  shortLabel: string
   description?: string
-  // 10 = highest importance
   priorityRank: number
-  // Takeaway messages for this question depending on the response (strong/weak).
+  structural?: boolean
+  driverLabels?: {
+    strong: string
+    weak: string
+  }
+  nextFocusType?: NextFocusType
   takeaways?: {
     strong: [string, string]
     weak: [string, string]
@@ -43,41 +49,45 @@ export const SCREENS: Screen[] = [
     title: 'Problem Awareness & Context',
     description:
       'Understand whether the market recognizes the problem and why this opportunity exists now.',
-    questionIds: ['customer_action', 'why_now', 'icp_clarity'],
+    questionIds: ['customerBehavior', 'whyNow', 'icpClarity'],
   },
   {
     id: 'pain-intensity',
     title: 'Pain Intensity',
     description: 'Evaluate how frequently the problem occurs and how severe the consequences are.',
-    questionIds: ['frequency', 'severity', 'economic_impact'],
+    questionIds: ['problemFrequency', 'problemSeverity', 'economicImpact'],
   },
   {
     id: 'current-reality',
     title: 'Current Reality',
     description:
       'Look at how customers currently solve the problem and whether existing solutions leave room for improvement.',
-    questionIds: ['current_solution', 'solution_quality'],
+    questionIds: ['currentBehavior', 'solutionGap'],
   },
   {
     id: 'validation',
     title: 'Evidence & Validation',
     description: 'Assess the strength of real-world validation and behavioral evidence.',
-    questionIds: ['validation'],
+    questionIds: ['validationEvidence'],
   },
 ]
 
-import type { Question } from '@/lib/problem-analyzer/schema'
-
-export const QUESTIONS: Record<string, Question> = {
-  customer_action: {
-    id: 'customer_action',
+export const QUESTIONS: Record<QuestionId, Question> = {
+  customerBehavior: {
+    id: 'customerBehavior',
     title: 'What are customers currently doing about this problem?',
-    shortLabel: 'Current customer action',
+    shortLabel: 'Customer Behavior',
     description: 'This measures how much education the market requires before buying.',
     priorityRank: 9,
+    structural: false,
+    driverLabels: {
+      strong: 'active customer behavior',
+      weak: 'weak customer action',
+    },
+    nextFocusType: 'behavior_change',
     takeaways: {
       strong: [
-        'Customers are actively taking action, which signals real behavioral demand.',
+        'Customers are already taking action, which signals real behavioral demand.',
         'Observable action suggests this problem is strong enough to drive behavior change.',
       ],
       weak: [
@@ -96,7 +106,7 @@ export const QUESTIONS: Record<string, Question> = {
         id: 'using_workarounds',
         label: 'Actively using workarounds or competitors',
         score: 20,
-        bucketLevel: 2,
+        bucketLevel: 1,
       },
       {
         id: 'complain_no_action',
@@ -113,13 +123,19 @@ export const QUESTIONS: Record<string, Question> = {
     ],
   },
 
-  why_now: {
-    id: 'why_now',
+  whyNow: {
+    id: 'whyNow',
     title: 'What makes this problem especially timely right now?',
-    shortLabel: 'Why now catalyst',
+    shortLabel: 'Timing Signal',
     description:
       'Strong startups often ride a shift in technology, regulation, distribution, or customer behavior. If nothing has changed, you should be clear on why this opportunity exists now and not five years ago.',
     priorityRank: 6,
+    structural: false,
+    driverLabels: {
+      strong: 'strong timing tailwind',
+      weak: 'weak timing signal',
+    },
+    nextFocusType: 'validate',
     takeaways: {
       strong: [
         'A clear timing catalyst strengthens the case that this opportunity exists now rather than in the past.',
@@ -141,7 +157,7 @@ export const QUESTIONS: Record<string, Question> = {
         bucketLevel: 1,
       },
       {
-        id: 'behavior_shift',
+        id: 'behavioral_shift',
         label: 'Customer behavior is changing in a measurable way',
         helpText:
           'Customer expectations or habits are shifting in a visible way (e.g. remote work, mobile-first usage, generational preference changes).',
@@ -149,7 +165,7 @@ export const QUESTIONS: Record<string, Question> = {
         bucketLevel: 2,
       },
       {
-        id: 'growing_market',
+        id: 'market_growing_only',
         label: 'Market is growing, but no clear structural change',
         helpText:
           'The problem is becoming more common or visible, but there is no clear catalyst enabling a new type of solution.',
@@ -157,7 +173,7 @@ export const QUESTIONS: Record<string, Question> = {
         bucketLevel: 3,
       },
       {
-        id: 'no_shift',
+        id: 'no_meaningful_change',
         label: 'No meaningful change — this problem has existed unchanged for years',
         helpText:
           'This problem has existed for years without a major shift in technology, regulation, or behavior.',
@@ -167,13 +183,19 @@ export const QUESTIONS: Record<string, Question> = {
     ],
   },
 
-  icp_clarity: {
-    id: 'icp_clarity',
+  icpClarity: {
+    id: 'icpClarity',
     title: 'How precisely can you define the group that experiences this problem?',
-    shortLabel: 'ICP clarity',
+    shortLabel: 'ICP Clarity',
     description:
       'Strong early-stage startups usually begin with a clearly defined niche. The more precisely you can describe the group experiencing this problem, the easier it is to test, reach, and refine your solution.',
     priorityRank: 8,
+    structural: false,
+    driverLabels: {
+      strong: 'clear target customer',
+      weak: 'unclear target customer',
+    },
+    nextFocusType: 'refine_problem',
     takeaways: {
       strong: [
         'A clearly defined niche improves speed of validation and lowers early distribution risk.',
@@ -186,7 +208,7 @@ export const QUESTIONS: Record<string, Question> = {
     },
     options: [
       {
-        id: 'specific_niche',
+        id: 'extremely_specific_niche',
         label: 'Extremely specific niche (clear role, context, and constraints)',
         helpText:
           'You can describe them in detail: role, environment, tools they use, and specific context (e.g. “independent podcast hosts with 5–50k listeners using Spotify Ads”).',
@@ -202,7 +224,7 @@ export const QUESTIONS: Record<string, Question> = {
         bucketLevel: 2,
       },
       {
-        id: 'large_category',
+        id: 'large_general_category',
         label: 'Large general category (e.g. “small businesses”, “creators”)',
         helpText:
           'The audience includes many different use cases and contexts (e.g. “marketers”, “students”).',
@@ -219,13 +241,19 @@ export const QUESTIONS: Record<string, Question> = {
     ],
   },
 
-  frequency: {
-    id: 'frequency',
+  problemFrequency: {
+    id: 'problemFrequency',
     title: 'For your target customer, how often does this problem meaningfully occur?',
-    shortLabel: 'Problem frequency',
+    shortLabel: 'Problem Frequency',
     description:
       'High-frequency problems are easier to build habits around and often easier to monetize. Low-frequency problems must be especially painful or high-value to justify a product.',
     priorityRank: 7,
+    structural: true,
+    driverLabels: {
+      strong: 'high problem frequency',
+      weak: 'low problem frequency',
+    },
+    nextFocusType: 'reconsider',
     takeaways: {
       strong: [
         'High recurrence increases habit potential and monetization opportunities.',
@@ -268,13 +296,19 @@ export const QUESTIONS: Record<string, Question> = {
     ],
   },
 
-  severity: {
-    id: 'severity',
+  problemSeverity: {
+    id: 'problemSeverity',
     title: 'What happens if this problem remains unsolved?',
-    shortLabel: 'Problem severity',
+    shortLabel: 'Problem Severity',
     description:
       'Severe problems are easier to prioritize and monetize. If the consequences are small, customers are less likely to change behavior or pay.',
     priorityRank: 9,
+    structural: true,
+    driverLabels: {
+      strong: 'strong problem intensity',
+      weak: 'weak problem intensity',
+    },
+    nextFocusType: 'reconsider',
     takeaways: {
       strong: [
         'Significant consequences increase prioritization and willingness to change behavior.',
@@ -294,21 +328,21 @@ export const QUESTIONS: Record<string, Question> = {
         bucketLevel: 1,
       },
       {
-        id: 'financial',
+        id: 'major_financial_reputational',
         label: 'Major financial or reputational impact',
         helpText: 'Significant money, contracts, or credibility are at risk.',
         score: 20,
-        bucketLevel: 2,
+        bucketLevel: 1,
       },
       {
-        id: 'productivity',
+        id: 'productivity_loss',
         label: 'Noticeable productivity or efficiency loss',
         helpText: 'Time, effort, or resources are wasted, but operations continue.',
         score: 12,
         bucketLevel: 3,
       },
       {
-        id: 'minor',
+        id: 'mild_inconvenience',
         label: 'Mild inconvenience or frustration',
         helpText: 'It’s annoying, but tolerable.',
         score: 5,
@@ -317,12 +351,19 @@ export const QUESTIONS: Record<string, Question> = {
     ],
   },
 
-  economic_impact: {
-    id: 'economic_impact',
+  economicImpact: {
+    id: 'economicImpact',
     title: 'How directly does this problem impact money?',
-    shortLabel: 'Economic impact',
-    description: 'The problem does not directly affect money or cost.',
+    shortLabel: 'Economic Impact',
+    description:
+      'Direct financial impact makes monetization and ROI framing easier. If the impact is not measurable, conversion and pricing will usually be harder.',
     priorityRank: 10,
+    structural: true,
+    driverLabels: {
+      strong: 'clear economic impact',
+      weak: 'unclear economic impact',
+    },
+    nextFocusType: 'validate',
     takeaways: {
       strong: [
         'Direct financial impact makes monetization and ROI framing easier.',
@@ -330,33 +371,33 @@ export const QUESTIONS: Record<string, Question> = {
       ],
       weak: [
         'Indirect or unclear economic impact weakens purchasing justification.',
-        'If the impact isn’t measurable in financial terms, conversion may be harder.',
+        'If the impact is not measurable in financial terms, conversion may be harder.',
       ],
     },
     options: [
       {
-        id: 'revenue_loss',
+        id: 'direct_revenue_loss',
         label: 'Direct revenue loss',
         helpText: 'Customers lose sales, contracts, or income because of this problem.',
         score: 25,
         bucketLevel: 1,
       },
       {
-        id: 'cost_increase',
+        id: 'clear_cost_increase',
         label: 'Clear cost increase',
         helpText: 'Customers spend money inefficiently or incur avoidable expenses.',
         score: 20,
-        bucketLevel: 2,
+        bucketLevel: 1,
       },
       {
-        id: 'time_loss',
+        id: 'time_productivity_only',
         label: 'Indirect time or productivity loss',
         helpText: 'The main impact is wasted time or inefficiency, not direct financial loss.',
         score: 10,
         bucketLevel: 3,
       },
       {
-        id: 'no_financial',
+        id: 'no_measurable_impact',
         label: 'No clear measurable financial impact',
         helpText: 'The problem does not directly affect money or cost.',
         score: 0,
@@ -365,13 +406,19 @@ export const QUESTIONS: Record<string, Question> = {
     ],
   },
 
-  current_solution: {
-    id: 'current_solution',
+  currentBehavior: {
+    id: 'currentBehavior',
     title: 'How are customers currently solving this problem?',
-    shortLabel: 'Current solution behavior',
+    shortLabel: 'Current Behavior',
     description:
       'If customers are already taking action, even inefficiently, that provides validation. Inaction often signals low urgency.',
     priorityRank: 9,
+    structural: false,
+    driverLabels: {
+      strong: 'active workaround behavior',
+      weak: 'weak evidence of current effort',
+    },
+    nextFocusType: 'validate',
     takeaways: {
       strong: [
         'Existing behavior or spend validates real demand and replacement opportunity.',
@@ -395,14 +442,14 @@ export const QUESTIONS: Record<string, Question> = {
         label: 'Manual workaround (spreadsheets, internal process, hacks)',
         helpText: 'Customers are solving it themselves using inefficient tools or processes.',
         score: 22,
-        bucketLevel: 2,
+        bucketLevel: 1,
       },
       {
         id: 'poorly_solved',
         label: 'Partially addressed but poorly solved',
         helpText: 'Customers attempt to solve it, but existing options are clearly inadequate.',
         score: 15,
-        bucketLevel: 3,
+        bucketLevel: 2,
       },
       {
         id: 'ignored',
@@ -414,13 +461,19 @@ export const QUESTIONS: Record<string, Question> = {
     ],
   },
 
-  solution_quality: {
-    id: 'solution_quality',
+  solutionGap: {
+    id: 'solutionGap',
     title: 'How well do current solutions actually solve the problem?',
-    shortLabel: 'Solution quality gap',
+    shortLabel: 'Solution Gap',
     description:
       'The better existing solutions are, the harder it will be to displace them. Weak or frustrating workarounds create opportunity.',
     priorityRank: 6,
+    structural: true,
+    driverLabels: {
+      strong: 'clear solution gap',
+      weak: 'existing solutions may already be sufficient',
+    },
+    nextFocusType: 'reconsider',
     takeaways: {
       strong: [
         'Weak or frustrating solutions create clear opportunity for displacement.',
@@ -433,14 +486,14 @@ export const QUESTIONS: Record<string, Question> = {
     },
     options: [
       {
-        id: 'inadequate',
+        id: 'clearly_inadequate',
         label: 'Clearly inadequate',
         helpText: 'Current solutions fail to address the core problem effectively.',
         score: 20,
         bucketLevel: 1,
       },
       {
-        id: 'tolerated',
+        id: 'frustrating_but_tolerated',
         label: 'Frustrating but tolerated',
         helpText: 'Customers complain but accept it as “good enough.”',
         score: 15,
@@ -454,7 +507,7 @@ export const QUESTIONS: Record<string, Question> = {
         bucketLevel: 3,
       },
       {
-        id: 'incumbent',
+        id: 'best_in_class',
         label: 'Best-in-class incumbent dominates',
         helpText: 'Existing solution is highly polished and deeply embedded.',
         score: 0,
@@ -463,13 +516,19 @@ export const QUESTIONS: Record<string, Question> = {
     ],
   },
 
-  validation: {
-    id: 'validation',
+  validationEvidence: {
+    id: 'validationEvidence',
     title: 'What concrete validation evidence do you have so far?',
-    shortLabel: 'Validation evidence',
+    shortLabel: 'Validation Evidence',
     description:
       'The strongest validation comes from real behavior, not opinions. Revenue and commitments outweigh interviews; interviews outweigh assumptions.',
     priorityRank: 10,
+    structural: false,
+    driverLabels: {
+      strong: 'strong validation evidence',
+      weak: 'limited validation evidence',
+    },
+    nextFocusType: 'validate',
     takeaways: {
       strong: [
         'Real revenue or strong validation evidence significantly reduces idea risk.',
@@ -489,25 +548,25 @@ export const QUESTIONS: Record<string, Question> = {
         bucketLevel: 1,
       },
       {
-        id: 'lois',
+        id: 'lois_precommitments',
         label: 'Signed LOIs or financial pre-commitments',
         helpText: 'Customers have formally expressed intent to pay.',
         score: 25,
-        bucketLevel: 2,
+        bucketLevel: 1,
       },
       {
-        id: 'interviews_10',
+        id: 'ten_plus_interviews',
         label: '10+ in-depth customer interviews with consistent pain signals',
         helpText: 'Multiple conversations confirming urgency and willingness to change behavior.',
         score: 18,
-        bucketLevel: 3,
+        bucketLevel: 2,
       },
       {
-        id: 'interviews_few',
+        id: 'fewer_than_ten_interviews',
         label: 'Fewer than 10 customer interviews',
         helpText: 'Some exploratory conversations, but limited data.',
         score: 8,
-        bucketLevel: 4,
+        bucketLevel: 3,
       },
       {
         id: 'no_interviews',

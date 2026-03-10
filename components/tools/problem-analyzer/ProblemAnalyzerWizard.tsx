@@ -32,6 +32,23 @@ const ALLOWED_SCREENS = new Set<string>([
   SCREEN_RESULTS,
 ])
 
+type MissingSchemaReference = {
+  screenId: string
+  questionId: QuestionId
+}
+
+function findMissingSchemaReferences(): MissingSchemaReference[] {
+  const missing: MissingSchemaReference[] = []
+  for (const screen of PROBLEM_ANALYZER_SCHEMA.screens) {
+    for (const questionId of screen.questionIds) {
+      if (!PROBLEM_ANALYZER_SCHEMA.questions[questionId]) {
+        missing.push({ screenId: screen.id, questionId })
+      }
+    }
+  }
+  return missing
+}
+
 function parseAnswersFromParams(params: ReadonlyURLSearchParams | URLSearchParams): AnswersMap {
   const answers: AnswersMap = {}
 
@@ -90,17 +107,28 @@ export default function ProblemAnalyzerWizard() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
-  const [problemText, setProblemText] = useState(() => searchParams.get('problem') ?? '')
-  const [audienceText, setAudienceText] = useState(() => searchParams.get('audience') ?? '')
-  const [answers, setAnswers] = useState<AnswersMap>(() => parseAnswersFromParams(searchParams))
+  const [problemText, setProblemText] = useState('')
+  const [audienceText, setAudienceText] = useState('')
+  const [answers, setAnswers] = useState<AnswersMap>({})
   const [confidenceByQuestion, setConfidenceByQuestion] = useState<
     Partial<Record<QuestionId, QuestionConfidenceLevel>>
-  >(() => parseConfidenceByQuestion(searchParams))
-  const [screenId, setScreenId] = useState<string>(() => parseScreenFromParams(searchParams))
-  const [debouncedProblemText, setDebouncedProblemText] = useState(problemText)
-  const [debouncedAudienceText, setDebouncedAudienceText] = useState(audienceText)
+  >({})
+  const [screenId, setScreenId] = useState<string>(FIRST_SCREEN_ID)
+  const [debouncedProblemText, setDebouncedProblemText] = useState('')
+  const [debouncedAudienceText, setDebouncedAudienceText] = useState('')
   const [attemptedNext, setAttemptedNext] = useState(false)
   const [missingQuestionIds, setMissingQuestionIds] = useState<QuestionId[]>([])
+  const [hasHydratedFromUrl, setHasHydratedFromUrl] = useState(false)
+
+  useEffect(() => {
+    if (process.env.NODE_ENV !== 'development') return
+    const missingRefs = findMissingSchemaReferences()
+    for (const ref of missingRefs) {
+      console.error(
+        `[ProblemAnalyzer] Invalid schema reference: screen "${ref.screenId}" references missing question "${ref.questionId}".`
+      )
+    }
+  }, [])
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -132,19 +160,25 @@ export default function ProblemAnalyzerWizard() {
       setConfidenceByQuestion(nextConfidenceByQuestion)
     }
     if (screenId !== nextScreenId) setScreenId(nextScreenId)
+    if (!hasHydratedFromUrl) setHasHydratedFromUrl(true)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams])
+  }, [hasHydratedFromUrl, searchParams])
 
   useEffect(() => {
-    const sp = new URLSearchParams(searchParams.toString())
+    if (!hasHydratedFromUrl) return
+    const currentUrlParams = new URLSearchParams(window.location.search)
+    const sp = new URLSearchParams()
 
-    for (const key of TOOL_OWNED_BASE_KEYS) {
-      sp.delete(key)
-    }
-
-    for (const questionId of Object.keys(PROBLEM_ANALYZER_SCHEMA.questions)) {
-      sp.delete(`q_${questionId}`)
-      sp.delete(`c_${questionId}`)
+    // Preserve unrelated params while fully rewriting tool-owned params.
+    for (const [key, value] of currentUrlParams.entries()) {
+      const isBaseOwned = TOOL_OWNED_BASE_KEYS.includes(
+        key as (typeof TOOL_OWNED_BASE_KEYS)[number]
+      )
+      const isAnswerOwned = key.startsWith('q_')
+      const isConfidenceOwned = key.startsWith('c_')
+      if (!isBaseOwned && !isAnswerOwned && !isConfidenceOwned) {
+        sp.append(key, value)
+      }
     }
 
     const normalizedProblem = debouncedProblemText.trim()
@@ -177,7 +211,9 @@ export default function ProblemAnalyzerWizard() {
     }
 
     const nextQuery = sp.toString()
-    const currentQuery = searchParams.toString()
+    const currentQuery = window.location.search.startsWith('?')
+      ? window.location.search.slice(1)
+      : window.location.search
     if (nextQuery === currentQuery) return
     router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false })
   }, [
@@ -185,10 +221,10 @@ export default function ProblemAnalyzerWizard() {
     confidenceByQuestion,
     debouncedAudienceText,
     debouncedProblemText,
+    hasHydratedFromUrl,
     pathname,
     router,
     screenId,
-    searchParams,
   ])
 
   const totalStepsBeforeResults = PROBLEM_ANALYZER_SCHEMA.screens.length + 1
@@ -291,6 +327,11 @@ export default function ProblemAnalyzerWizard() {
       problemText,
       audienceText,
       tier: baseViewModel.tier,
+      verdictLabel: baseViewModel.verdictLabel,
+      strategyPath: baseViewModel.strategyPath,
+      strategyDescription: baseViewModel.strategyDescription,
+      drivers: baseViewModel.drivers,
+      nextFocus: baseViewModel.nextFocus,
       percent: baseViewModel.percent,
       isComplete: scored.perQuestion.length === allQuestionIds.length,
       strengths: baseViewModel.strengths,
@@ -559,6 +600,14 @@ export default function ProblemAnalyzerWizard() {
           {currentScreen
             ? currentScreen.questionIds.map((questionId) => {
                 const question = PROBLEM_ANALYZER_SCHEMA.questions[questionId]
+                if (!question) {
+                  if (process.env.NODE_ENV === 'development') {
+                    console.error(
+                      `[ProblemAnalyzer] Invalid schema reference during render: screen "${currentScreen.id}" references missing question "${questionId}".`
+                    )
+                  }
+                  return null
+                }
                 return (
                   <QuestionCard
                     key={question.id}
@@ -692,7 +741,11 @@ export default function ProblemAnalyzerWizard() {
         </div>
       ) : (
         <div className="space-y-6">
-          <ResultsPanel result={resultModel} onProblemTextChange={setProblemText} />
+          <ResultsPanel
+            result={resultModel}
+            onProblemTextChange={setProblemText}
+            onAudienceTextChange={setAudienceText}
+          />
           <div className="flex justify-between">
             <button
               type="button"

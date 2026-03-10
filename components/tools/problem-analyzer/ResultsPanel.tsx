@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react'
 import InsightCard from '@/components/tools/problem-analyzer/InsightCard'
+import {
+  buildRecommendedActions,
+  type ActionCard,
+} from '@/components/tools/problem-analyzer/results-panel-actions'
 import ScreenDiagnosticCard from '@/components/tools/problem-analyzer/ScreenDiagnosticCard'
-import { PROBLEM_ANALYZER_SCHEMA } from '@/lib/problem-analyzer/schema'
+import { PROBLEM_ANALYZER_SCHEMA, type QuestionId } from '@/lib/problem-analyzer/schema'
 import type {
   BucketCounts,
   GroupedAllInsights,
@@ -9,12 +13,18 @@ import type {
   OverallTier,
   QuestionConfidenceLevel,
   ScreenDiagnostic,
+  StrategyPath,
 } from '@/lib/problem-analyzer/score'
 
 export type ResultModel = {
   problemText: string
   audienceText: string
   tier: OverallTier
+  verdictLabel: 'Strong Signal' | 'Emerging Signal' | 'Weak Signal'
+  strategyPath: StrategyPath
+  strategyDescription: string
+  drivers: string[]
+  nextFocus: string
   percent: number
   isComplete: boolean
   strengths: InsightItem[]
@@ -24,15 +34,9 @@ export type ResultModel = {
   screenDiagnostics: ScreenDiagnostic[]
   summaryMessage: string
   conf: 'high' | 'med' | 'low' | 'vlow'
-  confidenceByQuestion: Partial<Record<string, QuestionConfidenceLevel>>
+  confidenceByQuestion: Partial<Record<QuestionId, QuestionConfidenceLevel>>
   uncertainTitles: string[]
-  uncertainQuestionIds: string[]
-}
-
-type ActionCard = {
-  title: string
-  rationale: string
-  resources?: string[]
+  uncertainQuestionIds: QuestionId[]
 }
 
 function signalStrengthLabel(tier: OverallTier) {
@@ -41,160 +45,108 @@ function signalStrengthLabel(tier: OverallTier) {
   return 'Weak'
 }
 
-function signalInterpretation(tier: OverallTier) {
-  if (tier === 'strong') return 'Signal quality is strong. Worth validating deeper.'
-  if (tier === 'mixed') return 'The problem shows potential, but there are risk factors to address.'
-  return 'Signal is weak. Address the biggest unknowns before building.'
-}
-
 function meterClasses(tier: OverallTier) {
   if (tier === 'strong') return 'bg-green-500 dark:bg-green-400'
   if (tier === 'mixed') return 'bg-amber-500 dark:bg-amber-400'
   return 'bg-red-500 dark:bg-red-400'
 }
 
-function getQuestion(questionId: string) {
+function getQuestion(questionId: QuestionId) {
   return PROBLEM_ANALYZER_SCHEMA.questions[questionId]
 }
 
-function getQuestionShortLabel(questionId: string, fallback: string): string {
+function getQuestionShortLabel(questionId: QuestionId, fallback: string): string {
   return getQuestion(questionId)?.shortLabel ?? fallback
 }
 
-function getQuestionDescription(questionId: string): string | undefined {
+function getQuestionDescription(questionId: QuestionId): string | undefined {
   return getQuestion(questionId)?.description
 }
 
-function buildRecommendedActions(result: ResultModel): ActionCard[] {
-  const actions: ActionCard[] = []
-  const confidenceIsLow = result.conf === 'low' || result.conf === 'vlow'
-  const evidenceScreen =
-    result.screenDiagnostics.find((screen) => screen.screenId === 'validation') ??
-    result.screenDiagnostics.find((screen) => screen.title.toLowerCase().includes('evidence'))
+function strategyLabel(strategyPath: StrategyPath) {
+  if (strategyPath === 'build_mvp_test') return 'Build MVP Test'
+  if (strategyPath === 'market_creation') return 'Market Creation'
+  if (strategyPath === 'validate_opportunity') return 'Validate Opportunity'
+  if (strategyPath === 'refine_problem') return 'Refine Problem'
+  return 'Reconsider Idea'
+}
 
-  if (result.tier === 'weak') {
-    actions.push({
-      title: 'Validate the problem before building',
-      rationale:
-        'The current signal is weak, so building now is likely premature. Focus first on proving this pain is urgent and recurring for a specific audience.',
-      resources: ['The Mom Test'],
-    })
-  } else if (result.tier === 'mixed') {
-    actions.push({
-      title: 'Investigate the biggest unknowns',
-      rationale:
-        'Signal quality is mixed. Prioritize the highest-risk assumptions and resolve them with direct customer evidence before committing to solution scope.',
-      resources: ['The Mom Test', 'Sequoia PMF'],
-    })
-  } else {
-    actions.push({
-      title: 'Design a lightweight MVP test',
-      rationale:
-        'Signal quality is strong enough to test solution behavior. Keep the first experiment narrow so you can validate demand with minimal implementation overhead.',
-      resources: ['YC Startup School'],
-    })
-  }
+function confidenceLabel(conf: ResultModel['conf']) {
+  if (conf === 'high') return 'High'
+  if (conf === 'med') return 'Medium'
+  if (conf === 'low') return 'Low'
+  return 'Very low'
+}
 
-  const topRisk = result.risksOrConstraints[0]
-  if (topRisk) {
-    const shortLabel = getQuestionShortLabel(topRisk.questionId, topRisk.questionTitle)
-    actions.push({
-      title: `Validate ${shortLabel}`,
-      rationale: `You selected "${topRisk.optionLabel}" for this area. That response indicates elevated risk and should be validated before scaling product or go-to-market decisions.`,
-    })
-  }
+function driversSummary(drivers: string[]) {
+  if (drivers.length >= 2) return `${drivers[0]} and ${drivers[1]}.`
+  if (drivers.length === 1) return `${drivers[0]}.`
+  return 'Signals are mixed across categories.'
+}
 
-  if (result.uncertainQuestionIds.length > 0 || confidenceIsLow) {
-    actions.push({
-      title: 'Run structured customer discovery interviews',
-      rationale:
-        result.uncertainTitles.length > 0
-          ? `Uncertainty remains around ${result.uncertainTitles.join(', ')}. This lowers confidence, so use structured interviews to replace assumptions with direct evidence.`
-          : 'Current confidence is low. Run structured interviews to tighten assumptions and improve decision quality before building.',
-      resources: ['The Mom Test'],
-    })
-  }
-
-  if (
-    evidenceScreen &&
-    (evidenceScreen.screenTier === 'mixed' || evidenceScreen.screenTier === 'weak')
-  ) {
-    actions.push({
-      title: 'Collect stronger validation evidence',
-      rationale:
-        'Evidence quality is not yet strong enough for high-confidence execution. Prioritize stronger proof such as paid pilots, LOIs, or repeated behavioral signals.',
-      resources: ['Sequoia PMF'],
-    })
-  }
-
-  if (result.tier === 'strong' && actions.length < 5) {
-    actions.push({
-      title: 'Run a simple MVP experiment',
-      rationale:
-        'You have enough positive signal to run a focused experiment. Define clear success criteria and test one narrow outcome with real users.',
-      resources: ['YC Startup School'],
-    })
-  }
-
-  const fallbackActions: ActionCard[] = [
-    {
-      title: 'Define success criteria for the next validation cycle',
-      rationale:
-        'Set explicit pass/fail criteria for your next round of validation so decisions remain evidence-based and comparable across iterations.',
-    },
-    {
-      title: 'Prioritize one high-impact assumption per sprint',
-      rationale:
-        'Concentrating on a single high-impact unknown each cycle improves learning velocity and reduces execution drift.',
-    },
-  ]
-
-  for (const fallback of fallbackActions) {
-    if (actions.length >= 3) break
-    actions.push(fallback)
-  }
-
-  return actions.slice(0, 5)
+function formatNextFocus(text: string) {
+  return text.replace(/^Next focus:\s*/i, '')
 }
 
 export default function ResultsPanel({
   result,
   onProblemTextChange,
+  onAudienceTextChange,
 }: {
   result: ResultModel
   onProblemTextChange?: (value: string) => void
+  onAudienceTextChange?: (value: string) => void
 }) {
-  const [isEditingProblem, setIsEditingProblem] = useState(false)
+  const [isEditingContext, setIsEditingContext] = useState(false)
   const [draftProblemText, setDraftProblemText] = useState(result.problemText)
+  const [draftAudienceText, setDraftAudienceText] = useState(result.audienceText)
 
   useEffect(() => {
-    if (!isEditingProblem) {
+    if (!isEditingContext) {
       setDraftProblemText(result.problemText)
+      setDraftAudienceText(result.audienceText)
     }
-  }, [isEditingProblem, result.problemText])
+  }, [isEditingContext, result.audienceText, result.problemText])
 
-  const saveProblemText = () => {
+  const saveContext = () => {
     onProblemTextChange?.(draftProblemText)
-    setIsEditingProblem(false)
+    onAudienceTextChange?.(draftAudienceText)
+    setIsEditingContext(false)
   }
 
-  const cancelProblemEdit = () => {
+  const cancelContextEdit = () => {
     setDraftProblemText(result.problemText)
-    setIsEditingProblem(false)
+    setDraftAudienceText(result.audienceText)
+    setIsEditingContext(false)
   }
 
   const meterWidthPercent = Math.max(0, Math.min(100, Math.round(result.percent * 100)))
-  const actionCards = buildRecommendedActions(result)
+  const actionCards: ActionCard[] = buildRecommendedActions(result)
+  const lowConfidenceCount = Object.values(result.confidenceByQuestion).filter(
+    (value) => value === 'low'
+  ).length
 
   return (
     <section className="space-y-6">
       <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-950">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <h2 className="text-2xl font-semibold tracking-tight">Problem Insights</h2>
-          {!isEditingProblem ? (
+        <p className="text-xs font-semibold tracking-wide text-gray-500 uppercase dark:text-gray-400">
+          Problem Insights
+        </p>
+
+        <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
+          <div className="max-w-[70ch] space-y-2">
+            <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
+              Problem: {result.problemText || 'No problem statement provided yet.'}
+            </p>
+            <p className="text-sm text-gray-600 dark:text-gray-300">
+              Audience: {result.audienceText || 'No audience specified yet.'}
+            </p>
+          </div>
+
+          {!isEditingContext ? (
             <button
               type="button"
-              onClick={() => setIsEditingProblem(true)}
+              onClick={() => setIsEditingContext(true)}
               className="rounded-xl border border-gray-200 px-3 py-1.5 text-sm font-medium hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-900"
             >
               Edit
@@ -202,11 +154,7 @@ export default function ResultsPanel({
           ) : null}
         </div>
 
-        {!isEditingProblem ? (
-          <p className="mt-3 max-w-[70ch] text-base text-gray-800 dark:text-gray-100">
-            {result.problemText || 'No problem statement provided yet.'}
-          </p>
-        ) : (
+        {isEditingContext ? (
           <div className="mt-3 space-y-3">
             <label htmlFor="resultProblemText" className="text-sm font-medium">
               Problem statement
@@ -218,29 +166,39 @@ export default function ResultsPanel({
               rows={4}
               className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-800 dark:bg-gray-950"
             />
+            <label htmlFor="resultAudienceText" className="text-sm font-medium">
+              Who experiences this problem?
+            </label>
+            <textarea
+              id="resultAudienceText"
+              value={draftAudienceText}
+              onChange={(e) => setDraftAudienceText(e.target.value)}
+              rows={3}
+              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-800 dark:bg-gray-950"
+            />
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={saveProblemText}
+                onClick={saveContext}
                 className="rounded-xl bg-gray-900 px-3 py-1.5 text-sm font-medium text-white dark:bg-gray-100 dark:text-black"
               >
                 Save
               </button>
               <button
                 type="button"
-                onClick={cancelProblemEdit}
+                onClick={cancelContextEdit}
                 className="rounded-xl border border-gray-200 px-3 py-1.5 text-sm font-medium dark:border-gray-700"
               >
                 Cancel
               </button>
             </div>
           </div>
-        )}
-      </div>
+        ) : null}
 
-      <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-950">
-        <div className="mt-3 max-w-[600px]">
-          <div className="h-4 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-800">
+        <h2 className="mt-4 text-3xl font-bold tracking-tight">{result.verdictLabel}</h2>
+
+        <div className="mt-3 max-w-[520px]">
+          <div className="h-2.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-900">
             <div
               className={`h-full transition-[width] ${meterClasses(result.tier)}`}
               style={{ width: `${meterWidthPercent}%` }}
@@ -252,11 +210,24 @@ export default function ResultsPanel({
             />
           </div>
         </div>
-        <p className="mt-3 text-sm font-medium text-gray-900 dark:text-gray-100">
-          Signal strength: {signalStrengthLabel(result.tier)}
+
+        <p className="mt-4 text-sm font-semibold text-gray-700 dark:text-gray-200">
+          Strategy: {strategyLabel(result.strategyPath)}
         </p>
         <p className="mt-1 text-sm text-gray-700 dark:text-gray-200">
-          {signalInterpretation(result.tier)}
+          {result.strategyDescription}
+        </p>
+
+        <p className="mt-3 text-sm font-medium text-gray-800 dark:text-gray-100">
+          Next focus: {formatNextFocus(result.nextFocus)}
+        </p>
+        <p className="mt-3 text-sm text-gray-700 dark:text-gray-200">
+          Driven by: {driversSummary(result.drivers)}
+        </p>
+
+        <p className="mt-3 text-xs text-gray-600 dark:text-gray-300">
+          Confidence: {confidenceLabel(result.conf)}
+          {lowConfidenceCount > 0 ? ` · ${lowConfidenceCount} low-confidence answers` : ''}
         </p>
       </div>
 

@@ -69,8 +69,20 @@ export type GroupedAllInsights = {
 
 export type QuestionConfidenceLevel = 'low' | 'med' | 'high'
 
+export type StrategyPath =
+  | 'build_mvp_test'
+  | 'market_creation'
+  | 'validate_opportunity'
+  | 'refine_problem'
+  | 'reconsider_idea'
+
 export type ResultsViewModel = {
   tier: OverallTier
+  verdictLabel: 'Strong Signal' | 'Emerging Signal' | 'Weak Signal'
+  strategyPath: StrategyPath
+  strategyDescription: string
+  drivers: string[]
+  nextFocus: string
   percent: number
   strengths: InsightItem[]
   risksOrConstraints: InsightItem[]
@@ -111,6 +123,133 @@ function getQuestionPriorityRank(
 ) {
   const rank = schema.questions[questionId]?.priorityRank
   return typeof rank === 'number' ? rank : fallback
+}
+
+function getDriverConfidenceMultiplier(level?: QuestionConfidenceLevel): number {
+  if (level === 'high') return 1.0
+  if (level === 'med') return 0.9
+  if (level === 'low') return 0.7
+  return 1.0
+}
+
+function getBucketWeight(bucketLevel: 1 | 2 | 3 | 4): number {
+  if (bucketLevel === 1) return 1.2
+  if (bucketLevel === 2) return 1.0
+  if (bucketLevel === 3) return 1.3
+  return 1.6
+}
+
+function getVerdictLabel(tier: OverallTier): ResultsViewModel['verdictLabel'] {
+  if (tier === 'strong') return 'Strong Signal'
+  if (tier === 'mixed') return 'Emerging Signal'
+  return 'Weak Signal'
+}
+
+function getStrategyDescription(strategyPath: StrategyPath): string {
+  if (strategyPath === 'build_mvp_test') {
+    return 'Signals are strong enough to test demand with a lightweight product.'
+  }
+  if (strategyPath === 'market_creation') {
+    return 'Customers are not yet acting on the problem, so the opportunity depends on changing behavior or awareness.'
+  }
+  if (strategyPath === 'validate_opportunity') {
+    return 'The idea looks promising, but key assumptions still need stronger validation.'
+  }
+  if (strategyPath === 'refine_problem') {
+    return 'The opportunity is still unclear; refining the problem or customer may unlock stronger signals.'
+  }
+  return 'Structural signals suggest the opportunity may not be strong enough to pursue as framed.'
+}
+
+function getNextFocus(strategyPath: StrategyPath): string {
+  if (strategyPath === 'build_mvp_test') {
+    return 'Next focus: build a lightweight MVP and validate demand through real usage.'
+  }
+  if (strategyPath === 'market_creation') {
+    return 'Next focus: test whether customers will adopt a new workflow or mindset around this problem.'
+  }
+  if (strategyPath === 'validate_opportunity') {
+    return 'Next focus: validate the key assumptions with real customer signals.'
+  }
+  if (strategyPath === 'refine_problem') {
+    return 'Next focus: refine the problem definition or target customer before proceeding.'
+  }
+  return 'Next focus: reconsider or significantly refine the problem before investing further.'
+}
+
+function selectStrategyPath(
+  tier: OverallTier,
+  structuralRiskCount: number,
+  behaviorBarrierCount: number
+): StrategyPath {
+  if (tier === 'strong' && structuralRiskCount === 0) return 'build_mvp_test'
+  if (tier !== 'weak' && behaviorBarrierCount >= 1) return 'market_creation'
+  if (tier === 'mixed' && structuralRiskCount <= 1) return 'validate_opportunity'
+  if (tier === 'weak' && structuralRiskCount < 2) return 'refine_problem'
+  if (tier === 'weak' && structuralRiskCount >= 2) return 'reconsider_idea'
+  return tier === 'strong'
+    ? 'build_mvp_test'
+    : tier === 'mixed'
+      ? 'validate_opportunity'
+      : 'refine_problem'
+}
+
+type DriverCandidate = {
+  driverScore: number
+  questionId: QuestionId
+  bucketLevel: 1 | 2 | 3 | 4
+}
+
+function resolveDriverLabel(
+  schema: ProblemAnalyzerSchema,
+  questionId: QuestionId,
+  bucketLevel: 1 | 2 | 3 | 4
+) {
+  const question = schema.questions[questionId]
+  const isPositive = bucketLevel === 1
+  const explicit = isPositive ? question?.driverLabels?.strong : question?.driverLabels?.weak
+  if (explicit) return explicit
+  const fallback = question?.shortLabel ?? question?.title ?? questionId
+  return isPositive ? `strong ${fallback}` : `weak ${fallback}`
+}
+
+function selectDrivers(perQuestion: PerQuestionScore[], schema: ProblemAnalyzerSchema): string[] {
+  const candidates: DriverCandidate[] = perQuestion
+    .filter((item) => item.bucketLevel === 1 || item.bucketLevel >= 3)
+    .map((item) => {
+      const question = schema.questions[item.questionId]
+      let driverScore =
+        item.priorityRank *
+        getBucketWeight(item.bucketLevel) *
+        getDriverConfidenceMultiplier(item.confidenceLevel)
+      if (question?.structural) {
+        driverScore *= 1.15
+      }
+      return {
+        driverScore,
+        questionId: item.questionId,
+        bucketLevel: item.bucketLevel,
+      }
+    })
+    .sort((a, b) => b.driverScore - a.driverScore)
+
+  const positive = candidates.filter((item) => item.bucketLevel === 1)
+  const negative = candidates.filter((item) => item.bucketLevel >= 3)
+
+  const selected: DriverCandidate[] = []
+  if (positive.length > 0 && negative.length > 0) {
+    selected.push(positive[0], negative[0])
+  }
+
+  for (const candidate of candidates) {
+    if (selected.length >= 2) break
+    if (selected.some((item) => item.questionId === candidate.questionId)) continue
+    selected.push(candidate)
+  }
+
+  return selected
+    .slice(0, 2)
+    .map((item) => resolveDriverLabel(schema, item.questionId, item.bucketLevel))
 }
 
 function getConfidenceMultiplier(level?: QuestionConfidenceLevel): number {
@@ -352,6 +491,19 @@ export function buildResultsViewModel(
   schema: ProblemAnalyzerSchema,
   confidenceByQuestion: Partial<Record<QuestionId, QuestionConfidenceLevel>>
 ): ResultsViewModel {
+  const tier = classifyOverall(scored.percent)
+  const verdictLabel = getVerdictLabel(tier)
+  const structuralRiskCount = scored.perQuestion.filter((q) => {
+    const question = schema.questions[q.questionId]
+    return Boolean(question?.structural) && q.bucketLevel >= 3
+  }).length
+  const behaviorBarrierCount = scored.perQuestion.filter(
+    (q) => q.questionId === 'customerBehavior' && q.bucketLevel >= 3
+  ).length
+  const strategyPath = selectStrategyPath(tier, structuralRiskCount, behaviorBarrierCount)
+  const strategyDescription = getStrategyDescription(strategyPath)
+  const drivers = selectDrivers(scored.perQuestion, schema)
+  const nextFocus = getNextFocus(strategyPath)
   const bucketCounts = getBucketCounts(scored.perQuestion)
   const screenDiagnostics = getScreenDiagnostics(scored, schema)
   const allInsights = getAllInsightsGrouped(scored, schema)
@@ -366,7 +518,12 @@ export function buildResultsViewModel(
         : 'All responses indicate strong positive signal.'
 
   return {
-    tier: classifyOverall(scored.percent),
+    tier,
+    verdictLabel,
+    strategyPath,
+    strategyDescription,
+    drivers,
+    nextFocus,
     percent: scored.percent,
     strengths,
     risksOrConstraints,
