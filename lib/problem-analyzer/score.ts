@@ -79,7 +79,9 @@ export type StrategyPath =
 export type ResultsViewModel = {
   tier: OverallTier
   verdictLabel: 'Strong Signal' | 'Emerging Signal' | 'Weak Signal'
+  interpretation: string
   strategyPath: StrategyPath
+  strategyRecommendation: string
   strategyDescription: string
   drivers: string[]
   nextFocus: string
@@ -159,6 +161,32 @@ function getStrategyDescription(strategyPath: StrategyPath): string {
     return 'The opportunity is still unclear; refining the problem or customer may unlock stronger signals.'
   }
   return 'Structural signals suggest the opportunity may not be strong enough to pursue as framed.'
+}
+
+function getInterpretation(tier: OverallTier): string {
+  if (tier === 'strong') {
+    return 'Signals indicate a meaningful opportunity with strong early validation.'
+  }
+  if (tier === 'mixed') {
+    return 'Some signals suggest a real problem, but stronger behavioral validation is needed.'
+  }
+  return 'Current signals are weak and indicate material validation gaps before building.'
+}
+
+function getStrategyRecommendation(strategyPath: StrategyPath): string {
+  if (strategyPath === 'build_mvp_test') {
+    return 'Design a lightweight MVP test to validate real demand.'
+  }
+  if (strategyPath === 'market_creation') {
+    return 'Test behavior change and awareness before committing to a product build.'
+  }
+  if (strategyPath === 'validate_opportunity') {
+    return 'Validate opportunity before committing to a build.'
+  }
+  if (strategyPath === 'refine_problem') {
+    return 'Refine the problem and target customer before moving forward.'
+  }
+  return 'Reconsider the idea as currently framed before investing further.'
 }
 
 function getNextFocus(strategyPath: StrategyPath): string {
@@ -493,6 +521,7 @@ export function buildResultsViewModel(
 ): ResultsViewModel {
   const tier = classifyOverall(scored.percent)
   const verdictLabel = getVerdictLabel(tier)
+  const interpretation = getInterpretation(tier)
   const structuralRiskCount = scored.perQuestion.filter((q) => {
     const question = schema.questions[q.questionId]
     return Boolean(question?.structural) && q.bucketLevel >= 3
@@ -501,6 +530,7 @@ export function buildResultsViewModel(
     (q) => q.questionId === 'customerBehavior' && q.bucketLevel >= 3
   ).length
   const strategyPath = selectStrategyPath(tier, structuralRiskCount, behaviorBarrierCount)
+  const strategyRecommendation = getStrategyRecommendation(strategyPath)
   const strategyDescription = getStrategyDescription(strategyPath)
   const drivers = selectDrivers(scored.perQuestion, schema)
   const nextFocus = getNextFocus(strategyPath)
@@ -520,7 +550,9 @@ export function buildResultsViewModel(
   return {
     tier,
     verdictLabel,
+    interpretation,
     strategyPath,
+    strategyRecommendation,
     strategyDescription,
     drivers,
     nextFocus,

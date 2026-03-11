@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react'
 import InsightCard from '@/components/tools/problem-analyzer/InsightCard'
 import {
   buildRecommendedActions,
@@ -21,7 +20,9 @@ export type ResultModel = {
   audienceText: string
   tier: OverallTier
   verdictLabel: 'Strong Signal' | 'Emerging Signal' | 'Weak Signal'
+  interpretation: string
   strategyPath: StrategyPath
+  strategyRecommendation: string
   strategyDescription: string
   drivers: string[]
   nextFocus: string
@@ -88,114 +89,53 @@ function formatNextFocus(text: string) {
   return text.replace(/^Next focus:\s*/i, '')
 }
 
-export default function ResultsPanel({
-  result,
-  onProblemTextChange,
-  onAudienceTextChange,
-}: {
-  result: ResultModel
-  onProblemTextChange?: (value: string) => void
-  onAudienceTextChange?: (value: string) => void
-}) {
-  const [isEditingContext, setIsEditingContext] = useState(false)
-  const [draftProblemText, setDraftProblemText] = useState(result.problemText)
-  const [draftAudienceText, setDraftAudienceText] = useState(result.audienceText)
+type DrivingSignal = {
+  label: string
+  polarity: 'positive' | 'risk'
+}
 
-  useEffect(() => {
-    if (!isEditingContext) {
-      setDraftProblemText(result.problemText)
-      setDraftAudienceText(result.audienceText)
-    }
-  }, [isEditingContext, result.audienceText, result.problemText])
+function buildDrivingSignals(result: ResultModel): DrivingSignal[] {
+  const positives = result.strengths.map((item) => ({
+    label: getQuestionShortLabel(item.questionId, item.questionTitle),
+    polarity: 'positive' as const,
+  }))
+  const risks = result.risksOrConstraints.map((item) => ({
+    label: getQuestionShortLabel(item.questionId, item.questionTitle),
+    polarity: 'risk' as const,
+  }))
 
-  const saveContext = () => {
-    onProblemTextChange?.(draftProblemText)
-    onAudienceTextChange?.(draftAudienceText)
-    setIsEditingContext(false)
+  const combined: DrivingSignal[] = []
+  if (positives[0]) combined.push(positives[0])
+  if (risks[0]) combined.push(risks[0])
+
+  const leftovers = [...positives.slice(1), ...risks.slice(1)]
+  for (const item of leftovers) {
+    if (combined.length >= 3) break
+    combined.push(item)
   }
 
-  const cancelContextEdit = () => {
-    setDraftProblemText(result.problemText)
-    setDraftAudienceText(result.audienceText)
-    setIsEditingContext(false)
-  }
+  if (combined.length > 0) return combined.slice(0, 3)
 
+  return result.drivers.slice(0, 3).map((driver) => ({
+    label: driver,
+    polarity: result.tier === 'strong' ? 'positive' : 'risk',
+  }))
+}
+
+export default function ResultsPanel({ result }: { result: ResultModel }) {
   const meterWidthPercent = Math.max(0, Math.min(100, Math.round(result.percent * 100)))
   const actionCards: ActionCard[] = buildRecommendedActions(result)
-  const lowConfidenceCount = Object.values(result.confidenceByQuestion).filter(
-    (value) => value === 'low'
-  ).length
+  const drivingSignals = buildDrivingSignals(result)
+  const uncertainCount = result.uncertainQuestionIds.length
 
   return (
     <section className="space-y-6">
       <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-950">
         <p className="text-xs font-semibold tracking-wide text-gray-500 uppercase dark:text-gray-400">
-          Problem Insights
+          Opportunity Assessment
         </p>
 
-        <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
-          <div className="max-w-[70ch] space-y-2">
-            <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
-              Problem: {result.problemText || 'No problem statement provided yet.'}
-            </p>
-            <p className="text-sm text-gray-600 dark:text-gray-300">
-              Audience: {result.audienceText || 'No audience specified yet.'}
-            </p>
-          </div>
-
-          {!isEditingContext ? (
-            <button
-              type="button"
-              onClick={() => setIsEditingContext(true)}
-              className="rounded-xl border border-gray-200 px-3 py-1.5 text-sm font-medium hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-900"
-            >
-              Edit
-            </button>
-          ) : null}
-        </div>
-
-        {isEditingContext ? (
-          <div className="mt-3 space-y-3">
-            <label htmlFor="resultProblemText" className="text-sm font-medium">
-              Problem statement
-            </label>
-            <textarea
-              id="resultProblemText"
-              value={draftProblemText}
-              onChange={(e) => setDraftProblemText(e.target.value)}
-              rows={4}
-              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-800 dark:bg-gray-950"
-            />
-            <label htmlFor="resultAudienceText" className="text-sm font-medium">
-              Who experiences this problem?
-            </label>
-            <textarea
-              id="resultAudienceText"
-              value={draftAudienceText}
-              onChange={(e) => setDraftAudienceText(e.target.value)}
-              rows={3}
-              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-800 dark:bg-gray-950"
-            />
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={saveContext}
-                className="rounded-xl bg-gray-900 px-3 py-1.5 text-sm font-medium text-white dark:bg-gray-100 dark:text-black"
-              >
-                Save
-              </button>
-              <button
-                type="button"
-                onClick={cancelContextEdit}
-                className="rounded-xl border border-gray-200 px-3 py-1.5 text-sm font-medium dark:border-gray-700"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        ) : null}
-
-        <h2 className="mt-4 text-3xl font-bold tracking-tight">{result.verdictLabel}</h2>
+        <h2 className="mt-3 text-3xl font-bold tracking-tight">{result.verdictLabel}</h2>
 
         <div className="mt-3 max-w-[520px]">
           <div className="h-2.5 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-gray-900">
@@ -211,23 +151,56 @@ export default function ResultsPanel({
           </div>
         </div>
 
+        <p className="mt-4 text-lg text-gray-800 dark:text-gray-100">{result.interpretation}</p>
+
         <p className="mt-4 text-sm font-semibold text-gray-700 dark:text-gray-200">
-          Strategy: {strategyLabel(result.strategyPath)}
+          Strategic Recommendation
         </p>
-        <p className="mt-1 text-sm text-gray-700 dark:text-gray-200">
-          {result.strategyDescription}
+        <p className="mt-1 text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-50">
+          {result.strategyRecommendation}
         </p>
-
-        <p className="mt-3 text-sm font-medium text-gray-800 dark:text-gray-100">
-          Next focus: {formatNextFocus(result.nextFocus)}
-        </p>
-        <p className="mt-3 text-sm text-gray-700 dark:text-gray-200">
-          Driven by: {driversSummary(result.drivers)}
+        <p className="mt-2 text-sm text-gray-700 dark:text-gray-200">
+          Strategy: {strategyLabel(result.strategyPath)}. {result.strategyDescription}
         </p>
 
-        <p className="mt-3 text-xs text-gray-600 dark:text-gray-300">
-          Confidence: {confidenceLabel(result.conf)}
-          {lowConfidenceCount > 0 ? ` · ${lowConfidenceCount} low-confidence answers` : ''}
+        <p className="mt-4 text-sm font-semibold text-gray-700 dark:text-gray-200">
+          Signals driving this result
+        </p>
+        {drivingSignals.length > 0 ? (
+          <ul className="mt-2 space-y-1.5">
+            {drivingSignals.map((signal) => (
+              <li
+                key={`${signal.polarity}-${signal.label}`}
+                className={
+                  signal.polarity === 'positive'
+                    ? 'text-sm text-green-700 dark:text-green-300'
+                    : 'text-sm text-red-700 dark:text-red-300'
+                }
+              >
+                <span aria-hidden="true" className="mr-2">
+                  {signal.polarity === 'positive' ? '✓' : '!'}
+                </span>
+                {signal.label}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-2 text-sm text-gray-700 dark:text-gray-200">
+            {driversSummary(result.drivers)}
+          </p>
+        )}
+
+        <p className="mt-4 text-sm font-semibold text-gray-700 dark:text-gray-200">Next Focus</p>
+        <p className="mt-1 text-base text-gray-800 dark:text-gray-100">
+          {formatNextFocus(result.nextFocus)}
+        </p>
+
+        <p className="mt-4 text-sm font-semibold text-gray-700 dark:text-gray-200">Confidence</p>
+        <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+          {confidenceLabel(result.conf)}
+          {uncertainCount > 0
+            ? ` · ${uncertainCount} uncertain answer${uncertainCount === 1 ? '' : 's'}`
+            : ''}
         </p>
       </div>
 

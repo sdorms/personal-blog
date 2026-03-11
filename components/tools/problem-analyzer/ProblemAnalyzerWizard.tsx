@@ -328,7 +328,9 @@ export default function ProblemAnalyzerWizard() {
       audienceText,
       tier: baseViewModel.tier,
       verdictLabel: baseViewModel.verdictLabel,
+      interpretation: baseViewModel.interpretation,
       strategyPath: baseViewModel.strategyPath,
+      strategyRecommendation: baseViewModel.strategyRecommendation,
       strategyDescription: baseViewModel.strategyDescription,
       drivers: baseViewModel.drivers,
       nextFocus: baseViewModel.nextFocus,
@@ -741,11 +743,7 @@ export default function ProblemAnalyzerWizard() {
         </div>
       ) : (
         <div className="space-y-6">
-          <ResultsPanel
-            result={resultModel}
-            onProblemTextChange={setProblemText}
-            onAudienceTextChange={setAudienceText}
-          />
+          <ResultsPanel result={resultModel} />
           <div className="flex justify-between">
             <button
               type="button"
