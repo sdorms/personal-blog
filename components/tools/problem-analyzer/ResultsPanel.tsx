@@ -153,18 +153,15 @@ export default function ResultsPanel({ result }: { result: ResultModel }) {
 
         <p className="mt-4 text-lg text-gray-800 dark:text-gray-100">{result.interpretation}</p>
 
-        <p className="mt-4 text-sm font-semibold text-gray-700 dark:text-gray-200">
+        <p className="text-xs font-semibold tracking-wide text-gray-500 uppercase dark:text-gray-400">
           Strategic Recommendation
         </p>
         <p className="mt-1 text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-50">
           {result.strategyRecommendation}
         </p>
-        <p className="mt-2 text-sm text-gray-700 dark:text-gray-200">
-          Strategy: {strategyLabel(result.strategyPath)}. {result.strategyDescription}
-        </p>
 
-        <p className="mt-4 text-sm font-semibold text-gray-700 dark:text-gray-200">
-          Signals driving this result
+        <p className="text-xs font-semibold tracking-wide text-gray-500 uppercase dark:text-gray-400">
+          Key signals
         </p>
         {drivingSignals.length > 0 ? (
           <ul className="mt-2 space-y-1.5">
@@ -190,12 +187,16 @@ export default function ResultsPanel({ result }: { result: ResultModel }) {
           </p>
         )}
 
-        <p className="mt-4 text-sm font-semibold text-gray-700 dark:text-gray-200">Next Focus</p>
+        <p className="text-xs font-semibold tracking-wide text-gray-500 uppercase dark:text-gray-400">
+          Next Focus
+        </p>
         <p className="mt-1 text-base text-gray-800 dark:text-gray-100">
           {formatNextFocus(result.nextFocus)}
         </p>
 
-        <p className="mt-4 text-sm font-semibold text-gray-700 dark:text-gray-200">Confidence</p>
+        <p className="text-xs font-semibold tracking-wide text-gray-500 uppercase dark:text-gray-400">
+          Confidence
+        </p>
         <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
           {confidenceLabel(result.conf)}
           {uncertainCount > 0
