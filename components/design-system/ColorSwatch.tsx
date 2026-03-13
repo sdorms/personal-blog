@@ -56,13 +56,41 @@ function previewByCategory(token: ColorToken) {
   }
 
   if (token.category === 'surface') {
-    return (
-      <div
-        className={`rounded-lg border border-gray-200 p-3 dark:border-gray-800 ${token.className}`}
-      >
-        <div className="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs text-gray-600 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-300">
-          Nested content sample
+    if (token.id === 'surface-page') {
+      return (
+        <div
+          className={`rounded-xl border border-gray-200 p-3 dark:border-gray-800 ${token.className}`}
+        >
+          <div className="h-16 rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900" />
         </div>
+      )
+    }
+
+    if (token.id === 'surface-card') {
+      return (
+        <div className="rounded-xl border border-gray-200 bg-gray-100 p-3 dark:border-gray-800 dark:bg-gray-900">
+          <div
+            className={`h-16 rounded-lg border border-gray-200 shadow-sm dark:border-gray-700 ${token.className}`}
+          />
+        </div>
+      )
+    }
+
+    if (token.id === 'surface-panel') {
+      return (
+        <div className="rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-800 dark:bg-gray-950">
+          <div
+            className={`h-16 rounded-lg border border-gray-200 dark:border-gray-700 ${token.className}`}
+          />
+        </div>
+      )
+    }
+
+    return (
+      <div className="rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-800 dark:bg-gray-950">
+        <div
+          className={`h-16 rounded-lg border border-gray-200 dark:border-gray-700 ${token.className}`}
+        />
       </div>
     )
   }

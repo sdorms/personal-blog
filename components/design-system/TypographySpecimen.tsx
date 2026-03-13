@@ -1,6 +1,6 @@
-import type { TypographyToken } from '@/lib/design-system/typography'
+import type { TextStyleToken } from '@/lib/design-system/textStyles'
 
-function familyBadgeClasses(family: TypographyToken['family']) {
+function familyBadgeClasses(family: TextStyleToken['family']) {
   if (family === 'editorial') {
     return 'bg-blue-50 text-blue-700 ring-blue-200 dark:bg-blue-500/10 dark:text-blue-300 dark:ring-blue-500/30'
   }
@@ -10,7 +10,7 @@ function familyBadgeClasses(family: TypographyToken['family']) {
   return 'bg-gray-100 text-gray-700 ring-gray-300 dark:bg-gray-800 dark:text-gray-200 dark:ring-gray-700'
 }
 
-function sourceBadgeClasses(source: TypographyToken['source']) {
+function sourceBadgeClasses(source: TextStyleToken['source']) {
   if (source === 'existing') {
     return 'bg-emerald-50 text-emerald-700 ring-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-500/30'
   }
@@ -20,7 +20,7 @@ function sourceBadgeClasses(source: TypographyToken['source']) {
   return 'bg-sky-50 text-sky-700 ring-sky-200 dark:bg-sky-500/10 dark:text-sky-300 dark:ring-sky-500/30'
 }
 
-export default function TypographySpecimen({ token }: { token: TypographyToken }) {
+export default function TypographySpecimen({ token }: { token: TextStyleToken }) {
   return (
     <article className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-950">
       <div className="flex flex-wrap items-start justify-between gap-3">

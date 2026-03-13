@@ -24,7 +24,7 @@ function hoverFocusPreviewClasses(token: ButtonToken) {
   if (token.id === 'ghost') {
     return 'bg-gray-100 dark:bg-gray-900 outline-2 outline-primary-500 outline-offset-2'
   }
-  if (token.id === 'text-link') {
+  if (token.id === 'text-cta') {
     return 'text-primary-600 dark:text-primary-400 outline-2 outline-primary-500 outline-offset-2'
   }
   return 'bg-red-700 outline-2 outline-red-600 outline-offset-2'
@@ -32,6 +32,9 @@ function hoverFocusPreviewClasses(token: ButtonToken) {
 
 export default function ButtonSpecimen({ token }: { token: ButtonToken }) {
   const className = composedClassName(token)
+  const defaultLabel = token.id === 'text-cta' ? 'Read more →' : 'Default'
+  const hoverLabel = token.id === 'text-cta' ? 'Read more →' : 'Hover / Focus'
+  const disabledLabel = token.id === 'text-cta' ? 'Read more →' : 'Disabled'
 
   return (
     <article className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-950">
@@ -62,16 +65,16 @@ export default function ButtonSpecimen({ token }: { token: ButtonToken }) {
         </p>
         <div className="mt-2 flex flex-wrap items-center gap-3">
           <button type="button" className={className}>
-            Default
+            {defaultLabel}
           </button>
           <button
             type="button"
             className={`${className} ${hoverFocusPreviewClasses(token)} outline`}
           >
-            Hover / Focus
+            {hoverLabel}
           </button>
           <button type="button" className={className} disabled>
-            Disabled
+            {disabledLabel}
           </button>
         </div>
       </div>

@@ -160,7 +160,7 @@ export const COLOR_TOKEN_GROUPS: ColorTokenGroup[] = [
         id: 'surface-page',
         category: 'surface',
         name: 'Page Background',
-        className: 'bg-white dark:bg-gray-950',
+        className: 'bg-gray-100 dark:bg-gray-950',
         usage: 'Default app/page background',
         source: 'existing',
       },

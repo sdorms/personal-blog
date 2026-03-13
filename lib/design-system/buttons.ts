@@ -1,8 +1,8 @@
 export type ButtonSource = 'existing' | 'normalized' | 'new'
 
 export type ButtonToken = {
-  id: 'primary' | 'secondary' | 'ghost' | 'text-link' | 'destructive'
-  name: 'Primary' | 'Secondary' | 'Ghost' | 'Text Link' | 'Destructive'
+  id: 'primary' | 'secondary' | 'ghost' | 'text-cta' | 'destructive'
+  name: 'Primary' | 'Secondary' | 'Ghost' | 'Text CTA' | 'Destructive'
   usage: string
   className: string
   source: ButtonSource
@@ -38,11 +38,11 @@ export const BUTTON_TOKENS: ButtonToken[] = [
     source: 'normalized',
   },
   {
-    id: 'text-link',
-    name: 'Text Link',
-    usage: 'Tertiary or navigational action',
+    id: 'text-cta',
+    name: 'Text CTA',
+    usage: 'Standalone text-only call-to-action',
     className:
-      'bg-transparent px-0 py-0 text-primary-500 hover:text-primary-600 focus-visible:outline-2 focus-visible:outline-primary-500 dark:hover:text-primary-400 disabled:opacity-50 disabled:cursor-not-allowed',
+      'bg-transparent px-0 py-0 inline-flex items-center text-base leading-6 font-medium text-primary-500 hover:text-primary-600 focus-visible:outline-2 focus-visible:outline-primary-500 dark:hover:text-primary-400 disabled:opacity-50 disabled:cursor-not-allowed',
     source: 'normalized',
     isLinkStyle: true,
   },
