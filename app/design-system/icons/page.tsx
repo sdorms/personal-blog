@@ -4,7 +4,7 @@ import IconSpecimen from '@/components/design-system/IconSpecimen'
 
 export const metadata: Metadata = {
   title: 'Design System - Icons',
-  description: 'Phosphor icon standards and semantic mappings.',
+  description: 'Icons used on the site and tooling.',
 }
 
 export default function Page() {

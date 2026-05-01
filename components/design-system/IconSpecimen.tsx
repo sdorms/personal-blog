@@ -1,13 +1,14 @@
 'use client'
 
-import Icon from '@/components/ui/Icon'
+import Icon, { Icons } from '@/components/ui/Icon'
 import {
   ICON_LIBRARY,
-  ICON_SAMPLE_ROW,
   ICON_SIZE_TOKENS,
   SEMANTIC_ICON_TOKENS,
   type SemanticIconToken,
 } from '@/lib/design-system/icons'
+
+const iconNames = Object.keys(Icons) as Array<keyof typeof Icons>
 
 function sourceBadgeClasses(source: 'existing' | 'normalized' | 'new') {
   if (source === 'existing') {
@@ -36,22 +37,13 @@ export default function IconSpecimen() {
   return (
     <div className="space-y-4">
       <article className="border-border bg-card rounded-2xl border p-5 shadow-sm dark:border-gray-800 dark:bg-gray-950">
-        <h3 className="text-h5 text-heading dark:text-gray-100">Library</h3>
-        <p className="text-body-sm text-body mt-1 dark:text-gray-300">
-          Library in use: {ICON_LIBRARY.name}
-        </p>
-        <p className="text-caption text-muted mt-1 dark:text-gray-300">
-          Package: <code className="font-mono">{ICON_LIBRARY.packageName}</code>
-        </p>
+        <h3 className="text-h5 text-heading dark:text-gray-100">Icon Library</h3>
 
-        <div className="mt-4 flex flex-wrap gap-2">
-          {ICON_SAMPLE_ROW.map((iconName) => (
-            <span
-              key={iconName}
-              className="border-border bg-panel text-body inline-flex h-9 w-9 items-center justify-center rounded-xl border dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200"
-            >
+        <div className="mt-4 grid grid-cols-4 gap-3 sm:grid-cols-6 md:grid-cols-8">
+          {iconNames.map((iconName) => (
+            <div key={iconName} className="flex items-center justify-center">
               <Icon name={iconName} />
-            </span>
+            </div>
           ))}
         </div>
       </article>
@@ -83,29 +75,6 @@ export default function IconSpecimen() {
               <div className="border-divider bg-panel mt-3 rounded-lg border p-3 dark:border-gray-800 dark:bg-gray-900">
                 <Icon name="info" className={token.className} />
               </div>
-            </div>
-          ))}
-        </div>
-      </article>
-
-      <article className="border-border bg-card rounded-2xl border p-5 shadow-sm dark:border-gray-800 dark:bg-gray-950">
-        <h3 className="text-h5 text-heading dark:text-gray-100">Semantic Mappings</h3>
-        <p className="text-body-sm text-body mt-1 dark:text-gray-300">
-          Centralized icon mappings for product state semantics.
-        </p>
-
-        <div className="mt-4 grid gap-3 md:grid-cols-2">
-          {SEMANTIC_ICON_TOKENS.map((token) => (
-            <div
-              key={token.id}
-              className={`rounded-xl border p-3 ${semanticContainerClasses(token.id)}`}
-            >
-              <div className="flex items-center gap-2">
-                <Icon name={token.iconName} />
-                <p className="text-body-sm">{token.name}</p>
-              </div>
-              <p className="text-caption mt-1 opacity-90">{token.usage}</p>
-              <p className="text-body-xs mt-2 font-mono opacity-80">{token.iconName}</p>
             </div>
           ))}
         </div>

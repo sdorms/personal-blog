@@ -62,7 +62,7 @@ export const DESIGN_SYSTEM_SECTIONS: DesignSystemSection[] = [
     id: 'icons',
     title: 'Icons',
     href: '/design-system/icons',
-    description: 'Phosphor library usage, size tokens, and semantic mappings.',
+    description: 'Icon library and usage.',
   },
 ]
 

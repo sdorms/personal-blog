@@ -76,6 +76,22 @@ Typography spacing:
 - normal text blocks: space-y-3
 - large sections: space-y-6+
 
+## Icons
+
+Use the shared icon component:
+
+`components/ui/Icon.tsx`
+
+Do not import directly from `@phosphor-icons/react` in product components.
+
+Approved sizes:
+
+small = 16px
+default = 20px
+large = 24px
+
+Use decorative={false} only when the icon itself conveys meaning and needs an accessible label/title. Otherwise leave icons decorative.
+
 ---
 
 TypeScript
