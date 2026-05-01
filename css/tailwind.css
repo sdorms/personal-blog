@@ -15,30 +15,91 @@
     'Courier New', monospace;
 
   /* Colors */
-  /* Copied from https://tailwindcss.com/docs/theme#default-theme-variable-reference */
-  --color-primary-50: oklch(97% 0.014 254.604);
-  --color-primary-100: oklch(93.2% 0.032 255.585);
-  --color-primary-200: oklch(88.2% 0.059 254.128);
-  --color-primary-300: oklch(80.9% 0.105 251.813);
-  --color-primary-400: oklch(70.7% 0.165 254.624);
-  --color-primary-500: oklch(62.3% 0.214 259.815);
-  --color-primary-600: oklch(54.6% 0.245 262.881);
-  --color-primary-700: oklch(48.8% 0.243 264.376);
-  --color-primary-800: oklch(42.4% 0.199 265.638);
-  --color-primary-900: oklch(37.9% 0.146 265.522);
-  --color-primary-950: oklch(28.2% 0.091 267.935);
 
-  --color-gray-50: oklch(0.985 0.002 247.839);
-  --color-gray-100: oklch(0.967 0.003 264.542);
-  --color-gray-200: oklch(0.928 0.006 264.531);
-  --color-gray-300: oklch(0.872 0.01 258.338);
-  --color-gray-400: oklch(0.707 0.022 261.325);
-  --color-gray-500: oklch(0.551 0.027 264.364);
-  --color-gray-600: oklch(0.446 0.03 256.802);
-  --color-gray-700: oklch(0.373 0.034 259.733);
-  --color-gray-800: oklch(0.278 0.033 256.848);
-  --color-gray-900: oklch(0.21 0.034 264.665);
-  --color-gray-950: oklch(0.13 0.028 261.692);
+  /* ========================
+     PRIMARY SCALE
+  ======================== */
+
+  --color-primary-50: #eff6ff;
+  --color-primary-100: #dbeafe;
+  --color-primary-200: #bfdbfe;
+  --color-primary-300: #93c5fd;
+  --color-primary-400: #60a5fa;
+  --color-primary-500: #3b82f6;
+  --color-primary-600: #2563eb;
+  --color-primary-700: #1d4ed8;
+  --color-primary-800: #1e40af;
+  --color-primary-900: #1e3a8a;
+  --color-primary-950: #172554;
+
+  /* ========================
+     NEUTRAL SCALE
+  ======================== */
+
+  --color-gray-50: #f9fafb;
+  --color-gray-100: #f3f4f6;
+  --color-gray-200: #e5e7eb;
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
+  --color-gray-600: #4b5563;
+  --color-gray-700: #374151;
+  --color-gray-800: #1f2937;
+  --color-gray-900: #111827;
+  --color-gray-950: #030712;
+
+  /* ========================
+     SEMANTIC TEXT
+  ======================== */
+
+  --color-heading: var(--color-gray-900);
+  --color-body: var(--color-gray-700);
+  --color-muted: var(--color-gray-500);
+  --color-accent: var(--color-primary-500);
+  --color-white: #ffffff;
+
+  /* ========================
+     SEMANTIC SURFACE
+  ======================== */
+
+  --color-page: var(--color-gray-100);
+  --color-card: #ffffff;
+  --color-panel: var(--color-gray-50);
+  --color-subtle: var(--color-gray-100);
+
+  /* ========================
+     SEMANTIC BORDER
+  ======================== */
+
+  --color-border: var(--color-gray-200);
+  --color-divider: var(--color-gray-100);
+
+  /* ========================
+     STATUS: SUCCESS
+  ======================== */
+
+  --color-success-bg: #f0fdf4;
+  --color-success-border: #bbf7d0;
+  --color-success: #15803d;
+
+  /* ========================
+     STATUS: WARNING
+  ======================== */
+
+  --color-warning-bg: #f6d8c2;
+  --color-warning-border: #f9bb8d;
+  --color-warning: #ff8325;
+
+  /* ========================
+     STATUS: DANGER
+  ======================== */
+
+  --color-danger-bg: #f9dfe0;
+  --color-danger-border: #fecaca;
+  --color-danger: #dc2626;
+  --color-danger-hover: #b91c1c;
+
+  /* TODO: used by prose / legacy typography */
 
   /* Line heights */
   --line-height-11: 2.75rem;
@@ -83,6 +144,95 @@
 }
 
 @layer utilities {
+  /* Design system: typography tokens
+   Source: Figma typography table
+   Mobile-first; md: maps to desktop values
+   */
+
+  /* Typography tokens */
+
+  .text-h1 {
+    @apply text-[24px] leading-[32px] font-extrabold tracking-[-0.02em] md:text-[30px] md:leading-[36px];
+  }
+
+  .text-h2 {
+    @apply text-[22px] leading-[30px] font-bold tracking-[-0.02em] md:text-[24px] md:leading-[32px];
+  }
+
+  .text-h3 {
+    @apply text-[20px] leading-[28px] font-semibold tracking-[-0.01em];
+  }
+
+  .text-h4 {
+    @apply text-[18px] leading-[24px] font-semibold tracking-[-0.01em];
+  }
+
+  .text-h5 {
+    @apply text-[16px] leading-[24px] font-semibold;
+  }
+
+  .text-h6 {
+    @apply text-[14px] leading-[20px] font-semibold md:leading-[24px];
+  }
+
+  .text-body-lg {
+    @apply text-[16px] leading-[26px] md:text-[18px] md:leading-[28px];
+  }
+
+  .text-body-md {
+    @apply text-[16px] leading-[24px];
+  }
+
+  .text-body-sm {
+    @apply text-[14px] leading-[20px];
+  }
+
+  .text-body-xs {
+    @apply text-[12px] leading-[18px] md:text-[12px] md:leading-[20px];
+  }
+
+  .text-eyebrow {
+    @apply text-[12px] leading-[16px] font-semibold tracking-[0.05em] uppercase;
+  }
+
+  .text-button {
+    @apply text-[14px] leading-[20px] font-medium md:leading-[24px];
+  }
+
+  .text-link {
+    @apply text-[16px] leading-[24px] font-medium;
+  }
+
+  .text-tag {
+    @apply text-[13px] leading-[18px] font-medium tracking-[0.04em] uppercase md:text-[14px] md:leading-[20px];
+  }
+
+  .text-caption {
+    @apply text-[13px] leading-[18px] md:text-[14px] md:leading-[20px];
+  }
+
+  .text-metric {
+    @apply text-[18px] leading-[26px] font-semibold tracking-[-0.01em] md:text-[20px] md:leading-[28px];
+  }
+
+  .text-form-label {
+    @apply text-[14px] leading-[20px] font-medium;
+  }
+
+  .text-input {
+    @apply text-[14px] leading-[20px];
+  }
+
+  .text-helper {
+    @apply text-[12px] leading-[18px] md:leading-[20px];
+  }
+
+  .text-form-error {
+    @apply text-[12px] leading-[18px] md:leading-[20px];
+  }
+
+  /* Prose overrides */
+
   .prose {
     & :where(h1, h2, h3, h4, h5, h6) {
       font-family: var(--font-pixel);

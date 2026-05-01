@@ -11,7 +11,7 @@ export type IconSizeToken = {
 export type SemanticIconToken = {
   id: string
   name: string
-  iconName: 'CheckCircleIcon' | 'WarningCircleIcon' | 'XCircleIcon' | 'InfoIcon'
+  iconName: 'checkCircle' | 'warning' | 'xCircle' | 'info'
   usage: string
   source: 'normalized' | 'new'
 }
@@ -22,10 +22,10 @@ export const ICON_LIBRARY = {
 } as const
 
 export const ICON_SAMPLE_ROW: Array<SemanticIconToken['iconName']> = [
-  'CheckCircleIcon',
-  'WarningCircleIcon',
-  'XCircleIcon',
-  'InfoIcon',
+  'checkCircle',
+  'warning',
+  'xCircle',
+  'info',
 ]
 
 export const ICON_SIZE_TOKENS: IconSizeToken[] = [
@@ -56,28 +56,28 @@ export const SEMANTIC_ICON_TOKENS: SemanticIconToken[] = [
   {
     id: 'icon-success',
     name: 'Success',
-    iconName: 'CheckCircleIcon',
+    iconName: 'checkCircle',
     usage: 'Positive signals, validated states, success feedback',
     source: 'normalized',
   },
   {
     id: 'icon-warning',
     name: 'Warning',
-    iconName: 'WarningCircleIcon',
+    iconName: 'warning',
     usage: 'Emerging opportunities, caution states, partial validation',
     source: 'normalized',
   },
   {
     id: 'icon-danger',
     name: 'Danger',
-    iconName: 'XCircleIcon',
+    iconName: 'xCircle',
     usage: 'Weak signals, destructive actions, error states',
     source: 'normalized',
   },
   {
     id: 'icon-info',
     name: 'Info',
-    iconName: 'InfoIcon',
+    iconName: 'info',
     usage: 'Informational context and neutral guidance',
     source: 'normalized',
   },

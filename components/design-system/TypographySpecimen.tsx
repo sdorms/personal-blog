@@ -25,17 +25,17 @@ export default function TypographySpecimen({ token }: { token: TextStyleToken })
     <article className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-950">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">{token.name}</h3>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">{token.usage}</p>
+          <h3 className="text-h5 text-gray-900 dark:text-gray-100">{token.name}</h3>
+          <p className="text-body-sm mt-1 text-gray-600 dark:text-gray-300">{token.usage}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <span
-            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${familyBadgeClasses(token.family)}`}
+            className={`text-body-xs inline-flex items-center rounded-full px-2 py-0.5 ring-1 ring-inset ${familyBadgeClasses(token.family)}`}
           >
             family: {token.family}
           </span>
           <span
-            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${sourceBadgeClasses(token.source)}`}
+            className={`text-body-xs inline-flex items-center rounded-full px-2 py-0.5 ring-1 ring-inset ${sourceBadgeClasses(token.source)}`}
           >
             source: {token.source}
           </span>
@@ -43,10 +43,8 @@ export default function TypographySpecimen({ token }: { token: TextStyleToken })
       </div>
 
       <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-900">
-        <p className="text-xs font-semibold tracking-wide text-gray-500 uppercase dark:text-gray-400">
-          className
-        </p>
-        <code className="mt-1 block text-xs break-all text-gray-700 dark:text-gray-200">
+        <p className="text-eyebrow text-gray-500 dark:text-gray-400">className</p>
+        <code className="text-body-xs mt-1 block break-all text-gray-700 dark:text-gray-200">
           {token.className}
         </code>
       </div>
@@ -54,32 +52,24 @@ export default function TypographySpecimen({ token }: { token: TextStyleToken })
       {token.family === 'both' ? (
         <div className="mt-4 space-y-3">
           <div className="rounded-xl border border-gray-200 p-3 dark:border-gray-800">
-            <p className="text-xs font-semibold tracking-wide text-gray-500 uppercase dark:text-gray-400">
-              Editorial Preview
-            </p>
-            <p
-              className={`font-pixel mt-2 break-words text-gray-900 dark:text-gray-100 ${token.className}`}
-            >
-              {token.sample}
-            </p>
+            <p className="text-eyebrow text-gray-500 dark:text-gray-400">Editorial Preview</p>
+            <div className="mt-2 break-words">
+              <p className={`font-pixel ${token.className}`}>{token.sample}</p>
+            </div>
           </div>
           <div className="rounded-xl border border-gray-200 p-3 dark:border-gray-800">
-            <p className="text-xs font-semibold tracking-wide text-gray-500 uppercase dark:text-gray-400">
-              UI Preview
-            </p>
-            <p className={`mt-2 break-words text-gray-900 dark:text-gray-100 ${token.className}`}>
-              {token.sample}
-            </p>
+            <p className="text-eyebrow text-gray-500 dark:text-gray-400">UI Preview</p>
+            <div className="mt-2 break-words">
+              <p className={token.className}>{token.sample}</p>
+            </div>
           </div>
         </div>
       ) : (
         <div className="mt-4 rounded-xl border border-gray-200 p-3 dark:border-gray-800">
-          <p className="text-xs font-semibold tracking-wide text-gray-500 uppercase dark:text-gray-400">
-            Live Preview
-          </p>
-          <p className={`mt-2 break-words text-gray-900 dark:text-gray-100 ${token.className}`}>
-            {token.sample}
-          </p>
+          <p className="text-eyebrow text-gray-500 dark:text-gray-400">Live Preview</p>
+          <div className="mt-2 break-words">
+            <p className={token.className}>{token.sample}</p>
+          </div>
         </div>
       )}
     </article>

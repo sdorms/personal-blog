@@ -52,6 +52,30 @@ Styling
 - Prefer simple utility classes over complex class logic.
 - Maintain visual consistency with existing components.
 
+## Spacing rules
+
+- Use Tailwind spacing scale only (4px base)
+- Allowed values: 1,2,3,4,5,6,8,10,12,16
+- Do NOT use arbitrary values (e.g. p-[18px], mt-[22px])
+- Prefer consistent spacing patterns:
+
+Layout:
+
+- section padding: py-12 md:py-16
+- container padding: px-4 md:px-6
+
+Components:
+
+- card padding: p-4 or p-5
+- stack spacing: space-y-3 / space-y-4
+- inline gap: gap-2 / gap-3
+
+Typography spacing:
+
+- small text blocks: space-y-2
+- normal text blocks: space-y-3
+- large sections: space-y-6+
+
 ---
 
 TypeScript
