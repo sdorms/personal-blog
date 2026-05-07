@@ -1,6 +1,6 @@
-import type { QuestionId } from '../schema.ts'
-import type { AnswersMap, QuestionConfidenceLevel } from '../score.ts'
-import type { NextFocusType, PrimaryRisk, RecommendationType } from './interpreter.ts'
+import type { QuestionId } from '../schema'
+import type { AnswersMap, QuestionConfidenceLevel } from '../score'
+import type { NextFocusType, PrimaryRisk, RecommendationType } from './interpreter'
 
 export type TestCase = {
   caseName: string

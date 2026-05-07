@@ -14,12 +14,8 @@ import {
   type OptionId,
   type QuestionId,
 } from '@/lib/problem-analyzer/schema'
-import {
-  buildResultsViewModel,
-  scoreAnswers,
-  type AnswersMap,
-  type QuestionConfidenceLevel,
-} from '@/lib/problem-analyzer/score'
+import type { AnswersMap, QuestionConfidenceLevel } from '@/lib/problem-analyzer/score'
+import { buildProblemAnalyzerV2Analysis } from '@/lib/problem-analyzer/v2/adapter'
 
 const FIRST_SCREEN_ID = PROBLEM_ANALYZER_SCHEMA.screens[0]?.id ?? 'problem'
 const SCREEN_CONFIDENCE = 'confidence'
@@ -85,10 +81,6 @@ function parseScreenFromParams(params: ReadonlyURLSearchParams | URLSearchParams
 function answersEqual(a: AnswersMap, b: AnswersMap): boolean {
   const questionIds = Object.keys(PROBLEM_ANALYZER_SCHEMA.questions)
   return questionIds.every((id) => a[id] === b[id])
-}
-
-function orderedUniqueQuestionIds(ids: QuestionId[]) {
-  return Array.from(new Set(ids)).sort()
 }
 
 function confidenceMapsEqual(
@@ -285,69 +277,19 @@ export default function ProblemAnalyzerWizard() {
     }
   }, [audienceText, isHeaderEditing, problemText])
 
-  const scored = useMemo(
-    () => scoreAnswers(answers, PROBLEM_ANALYZER_SCHEMA, confidenceByQuestion),
-    [answers, confidenceByQuestion]
-  )
-  const allQuestionIds = useMemo(
-    () => Object.keys(PROBLEM_ANALYZER_SCHEMA.questions) as QuestionId[],
-    []
-  )
-
   const resultModel: ResultModel = useMemo(() => {
-    const baseViewModel = buildResultsViewModel(
-      scored,
-      PROBLEM_ANALYZER_SCHEMA,
-      confidenceByQuestion
-    )
-    const lowConfidenceIds = Object.entries(confidenceByQuestion)
-      .filter((entry): entry is [QuestionId, QuestionConfidenceLevel] => Boolean(entry[1]))
-      .filter(([, level]) => level === 'low')
-      .map(([questionId]) => questionId)
-    const uncertainTitles = orderedUniqueQuestionIds(lowConfidenceIds)
-      .map((id) => PROBLEM_ANALYZER_SCHEMA.questions[id]?.title)
-      .filter((title): title is string => Boolean(title))
-    const lowCount = Object.values(confidenceByQuestion).filter((level) => level === 'low').length
-    const medCount = Object.values(confidenceByQuestion).filter((level) => level === 'med').length
-    const highCount = Object.values(confidenceByQuestion).filter((level) => level === 'high').length
-    // Temporary aggregate confidence heuristic for the current results UI.
-    // Replace this once results consume per-question confidence directly.
-    const derivedConf =
-      lowCount >= 2
-        ? 'vlow'
-        : lowCount === 1
-          ? 'low'
-          : medCount > 0
-            ? 'med'
-            : highCount > 0
-              ? 'high'
-              : 'med'
-
-    return {
+    return buildProblemAnalyzerV2Analysis({
       problemText,
       audienceText,
-      tier: baseViewModel.tier,
-      verdictLabel: baseViewModel.verdictLabel,
-      interpretation: baseViewModel.interpretation,
-      strategyPath: baseViewModel.strategyPath,
-      strategyRecommendation: baseViewModel.strategyRecommendation,
-      strategyDescription: baseViewModel.strategyDescription,
-      drivers: baseViewModel.drivers,
-      nextFocus: baseViewModel.nextFocus,
-      percent: baseViewModel.percent,
-      isComplete: scored.perQuestion.length === allQuestionIds.length,
-      strengths: baseViewModel.strengths,
-      risksOrConstraints: baseViewModel.risksOrConstraints,
-      allInsights: baseViewModel.allInsights,
-      bucketCounts: baseViewModel.bucketCounts,
-      screenDiagnostics: baseViewModel.screenDiagnostics,
-      summaryMessage: baseViewModel.summaryMessage,
-      conf: derivedConf,
+      answers,
       confidenceByQuestion,
-      uncertainTitles,
-      uncertainQuestionIds: orderedUniqueQuestionIds(lowConfidenceIds),
-    }
-  }, [allQuestionIds.length, audienceText, confidenceByQuestion, problemText, scored])
+    })
+  }, [answers, audienceText, confidenceByQuestion, problemText])
+  const answeredQuestions = useMemo(
+    () =>
+      Object.values(PROBLEM_ANALYZER_SCHEMA.questions).filter((question) => answers[question.id]),
+    [answers]
+  )
 
   const onSelectOption = (questionId: QuestionId, optionId: OptionId) => {
     setAnswers((current) => ({ ...current, [questionId]: optionId }))
@@ -632,17 +574,25 @@ export default function ProblemAnalyzerWizard() {
               </p>
 
               <div className="mt-4 space-y-3">
-                {scored.perQuestion.length > 0 ? (
-                  scored.perQuestion.map((item) => {
-                    const selectedLevel = confidenceByQuestion[item.questionId]
+                {answeredQuestions.length > 0 ? (
+                  answeredQuestions.map((question) => {
+                    const selectedLevel = confidenceByQuestion[question.id]
+                    const selectedOption = question.options.find(
+                      (option) => option.id === answers[question.id]
+                    )
+
+                    if (!selectedOption) {
+                      return null
+                    }
+
                     return (
                       <div
-                        key={item.questionId}
+                        key={question.id}
                         className="rounded-xl border border-gray-200 p-4 dark:border-gray-800"
                       >
-                        <p className="text-sm font-medium">{item.questionTitle}</p>
+                        <p className="text-sm font-medium">{question.title}</p>
                         <p className="mt-1 text-xs text-gray-600 dark:text-gray-300">
-                          Your answer: {item.optionLabel}
+                          Your answer: {selectedOption.label}
                         </p>
 
                         <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
@@ -660,12 +610,12 @@ export default function ProblemAnalyzerWizard() {
                               >
                                 <input
                                   type="radio"
-                                  name={`confidence-${item.questionId}`}
+                                  name={`confidence-${question.id}`}
                                   checked={checked}
                                   onChange={() =>
                                     setConfidenceByQuestion((current) => ({
                                       ...current,
-                                      [item.questionId]: level,
+                                      [question.id]: level,
                                     }))
                                   }
                                   className="h-4 w-4 border-gray-300 text-gray-900 focus:ring-gray-500"
@@ -680,7 +630,7 @@ export default function ProblemAnalyzerWizard() {
                             onClick={() =>
                               setConfidenceByQuestion((current) => {
                                 const next = { ...current }
-                                delete next[item.questionId]
+                                delete next[question.id]
                                 return next
                               })
                             }

@@ -96,6 +96,7 @@ export default function Page() {
             <LegacyContentCard
               title="Designing for Leverage"
               description="Representative example of the current editorial content card pattern for post/project previews."
+              imgSrc="/static/images/site_screenshot.png"
               href="/design-system"
             />
           </div>

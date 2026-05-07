@@ -151,7 +151,7 @@ const URGENCY_BASE_LEVELS: Record<'problemSeverity', OptionLevelMap> = {
   },
 }
 
-const DEMAND_MODIFIER_LEVELS = {
+const DEMAND_MODIFIER_LEVELS: Record<'currentBehavior', OptionLevelMap> = {
   currentBehavior: {
     paying_competitor: 2,
     manual_workaround: 2,

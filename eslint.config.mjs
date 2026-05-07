@@ -1,5 +1,4 @@
 import typescriptEslint from '@typescript-eslint/eslint-plugin'
-import globals from 'globals'
 import tsParser from '@typescript-eslint/parser'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -12,7 +11,8 @@ const compat = new FlatCompat({
   baseDirectory: __dirname,
 })
 
-export default [
+/** @type {import('eslint').Linter.FlatConfig[]} */
+const config = [
   {
     ignores: [
       '.next/**',
@@ -102,3 +102,5 @@ export default [
     },
   },
 ]
+
+export default config

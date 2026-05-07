@@ -4,8 +4,8 @@ import {
   buildResultOutput,
   interpretAnswers,
   type ResultOutput,
-} from './interpreter.ts'
-import { PROBLEM_ANALYZER_TEST_CASES } from './fixtures.ts'
+} from './interpreter'
+import { PROBLEM_ANALYZER_TEST_CASES } from './fixtures'
 
 export type ProblemAnalyzerSnapshot = {
   caseName: string
