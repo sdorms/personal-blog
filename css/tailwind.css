@@ -113,6 +113,59 @@
   --z-80: 80;
 }
 
+.dark {
+  /* ========================
+     SEMANTIC TEXT
+  ======================== */
+
+  --color-heading: var(--color-gray-100); /* high contrast */
+  --color-body: var(--color-gray-200); /* readable body */
+  --color-muted: var(--color-gray-400); /* de-emphasised */
+  --color-accent: var(--color-primary-400); /* slightly brighter in dark */
+  --color-white: #ffffff; /* unchanged */
+
+  /* ========================
+     SEMANTIC SURFACE
+  ======================== */
+
+  --color-page: var(--color-gray-950); /* main background */
+  --color-card: var(--color-gray-900); /* elevated surface */
+  --color-panel: var(--color-gray-900); /* same or slightly lighter than card */
+  --color-subtle: var(--color-gray-800); /* subtle sections */
+
+  /* ========================
+     SEMANTIC BORDER
+  ======================== */
+
+  --color-border: var(--color-gray-800); /* visible but low contrast */
+  --color-divider: var(--color-gray-800); /* consistent with border */
+
+  /* ========================
+     STATUS: SUCCESS
+  ======================== */
+
+  --color-success-bg: #052e16;
+  --color-success-border: #14532d;
+  --color-success: #4ade80;
+
+  /* ========================
+     STATUS: WARNING
+  ======================== */
+
+  --color-warning-bg: #3b1d0a;
+  --color-warning-border: #7c2d12;
+  --color-warning: #fb923c;
+
+  /* ========================
+     STATUS: DANGER
+  ======================== */
+
+  --color-danger-bg: #3f0d0e;
+  --color-danger-border: #7f1d1d;
+  --color-danger: #f87171;
+  --color-danger-hover: #ef4444;
+}
+
 /*
   The default border color has changed to `currentColor` in Tailwind CSS v4,
   so we've added these compatibility styles to make sure everything still

@@ -78,9 +78,13 @@ export type ResultBlueprint = {
 }
 
 export type ResultOutput = {
+  overallAssessment: 'strong' | 'emerging' | 'weak'
   summary: string
   detail: string
-  signals: string[]
+  signals: Array<{
+    label: string
+    type: 'positive' | 'negative'
+  }>
   recommendation: {
     title: string
     detail: string
@@ -213,14 +217,14 @@ const SIGNAL_LABELS: Record<SignalKey, string> = {
   high_problem_frequency: 'Frequent problem',
   specific_target_customer: 'Clear ICP',
   strong_timing_tailwind: 'Timing tailwind',
-  clear_solution_gap: 'Solution gap',
+  clear_solution_gap: 'Clear solution gap',
   limited_validation: 'Low validation',
   weak_customer_action: 'Weak demand',
   low_urgency: 'Low urgency',
-  low_frequency: 'Low frequency',
-  unclear_economic_impact: 'No ROI',
-  broad_target_audience: 'Broad audience',
-  good_enough_existing_solutions: 'Good enough',
+  low_frequency: 'Low frequency problem',
+  unclear_economic_impact: 'Unclear economic impact',
+  broad_target_audience: 'Overly broad target audience',
+  good_enough_existing_solutions: 'Adequate existing solutions',
   strong_incumbents: 'Strong incumbents',
   weak_timing_signal: 'Weak timing',
   market_does_not_recognize_problem: 'Unrecognized problem',
@@ -735,11 +739,23 @@ export function buildResultBlueprint(
 export function buildResultOutput(blueprint: ResultBlueprint): ResultOutput {
   const strengthLabels = blueprint.selectedStrengths.map((signal) => SIGNAL_LABELS[signal])
   const riskLabels = blueprint.selectedRisks.map((signal) => SIGNAL_LABELS[signal])
-  const allSignals = [...strengthLabels, ...riskLabels].slice(0, 3)
+
+  const strengthSignals = strengthLabels.map((label) => ({
+    label,
+    type: 'positive' as const,
+  }))
+
+  const riskSignals = riskLabels.map((label) => ({
+    label,
+    type: 'negative' as const,
+  }))
+
+  const allSignals = [...riskSignals, ...strengthSignals].slice(0, 3)
   const recommendation = COPY_BANK.recommendationTemplates[blueprint.recommendationKey]
   const nextFocus = COPY_BANK.nextFocusTemplates[blueprint.nextFocusKey]
 
   return {
+    overallAssessment: blueprint.overallAssessment,
     summary: COPY_BANK.summaryTemplates[blueprint.overallAssessment][blueprint.primaryRisk],
     detail: COPY_BANK.detailTemplates[blueprint.primaryRisk](strengthLabels, riskLabels),
     signals: allSignals,
