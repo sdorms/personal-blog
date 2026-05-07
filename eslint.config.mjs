@@ -1,5 +1,4 @@
 import typescriptEslint from '@typescript-eslint/eslint-plugin'
-import globals from 'globals'
 import tsParser from '@typescript-eslint/parser'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -12,7 +11,8 @@ const compat = new FlatCompat({
   baseDirectory: __dirname,
 })
 
-export default [
+/** @type {import('eslint').Linter.FlatConfig[]} */
+const config = [
   {
     ignores: [
       '.next/**',
@@ -24,7 +24,7 @@ export default [
       'contentlayer/generated/**',
       '.contentlayer/**',
       'dist/**',
-      'public/**'
+      'public/**',
     ],
   },
   // 1) Non-type-aware defaults (safe for JS/config/etc)
@@ -36,9 +36,12 @@ export default [
     'next/core-web-vitals'
   ),
 
-    // Type-aware configs, restricted to TS/TSX
+  // Type-aware configs, restricted to TS/TSX
   ...compat
-    .extends('plugin:@typescript-eslint/recommended', 'plugin:@typescript-eslint/recommended-type-checked')
+    .extends(
+      'plugin:@typescript-eslint/recommended',
+      'plugin:@typescript-eslint/recommended-type-checked'
+    )
     .map((cfg) => ({
       ...cfg,
       files: ['**/*.ts', '**/*.tsx'],
@@ -77,25 +80,27 @@ export default [
       '@typescript-eslint/no-var-requires': 'off',
       '@typescript-eslint/ban-ts-comment': 'off',
 
-    // turn off the strict “unsafe” family (template wasn’t built for it)
-    '@typescript-eslint/no-unsafe-assignment': 'off',
-    '@typescript-eslint/no-unsafe-member-access': 'off',
-    '@typescript-eslint/no-unsafe-call': 'off',
-    '@typescript-eslint/no-unsafe-argument': 'off',
-    '@typescript-eslint/no-unsafe-return': 'off',
+      // turn off the strict “unsafe” family (template wasn’t built for it)
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
 
-    // this one fires a lot with Next + generated code
-    '@typescript-eslint/no-floating-promises': 'off',
+      // this one fires a lot with Next + generated code
+      '@typescript-eslint/no-floating-promises': 'off',
 
-    // Next route/page functions are often async for convention
-    '@typescript-eslint/require-await': 'off',
+      // Next route/page functions are often async for convention
+      '@typescript-eslint/require-await': 'off',
 
-    // common in Next templates when using template literals with `StaticImport`
-    '@typescript-eslint/restrict-template-expressions': 'off',
-    '@typescript-eslint/no-base-to-string': 'off',
+      // common in Next templates when using template literals with `StaticImport`
+      '@typescript-eslint/restrict-template-expressions': 'off',
+      '@typescript-eslint/no-base-to-string': 'off',
 
-    // optional: often noisy in app router templates
-    '@typescript-eslint/no-unnecessary-type-assertion': 'off',
+      // optional: often noisy in app router templates
+      '@typescript-eslint/no-unnecessary-type-assertion': 'off',
     },
   },
 ]
+
+export default config

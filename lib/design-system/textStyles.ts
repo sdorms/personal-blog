@@ -1,0 +1,293 @@
+export type TextStyleFamily = 'editorial' | 'ui' | 'both'
+export type TextStyleSource = 'existing' | 'normalized' | 'new'
+export type TextStyleCategory = 'headings' | 'body' | 'ui' | 'forms'
+
+export type TextStyleToken = {
+  id: string
+  name: string
+  category: TextStyleCategory
+  usage: string
+  className: string
+  family: TextStyleFamily
+  source: TextStyleSource
+  sample: string
+}
+
+export type TextStyleSection = {
+  id: TextStyleCategory
+  title: string
+  description: string
+  tokens: TextStyleToken[]
+}
+
+export const TEXT_STYLES = {
+  h1: {
+    id: 'h1',
+    name: 'H1',
+    category: 'headings',
+    family: 'ui',
+    source: 'existing',
+    className: 'text-h1',
+    usage: 'Top-level page titles and major product or content headers.',
+    sample: 'Designing for leverage',
+  },
+  h2: {
+    id: 'h2',
+    name: 'H2',
+    category: 'headings',
+    family: 'ui',
+    source: 'existing',
+    className: 'text-h2',
+    usage: 'Major section headings and card-level titles.',
+    sample: 'Opportunity Assessment',
+  },
+  h3: {
+    id: 'h3',
+    name: 'H3',
+    category: 'headings',
+    family: 'ui',
+    source: 'existing',
+    className: 'text-h3',
+    usage: 'Subsection headings inside panels, cards, and grouped content.',
+    sample: 'Strategic Recommendation',
+  },
+  h4: {
+    id: 'h4',
+    name: 'H4',
+    category: 'headings',
+    family: 'ui',
+    source: 'new',
+    className: 'text-h4',
+    usage: 'Compact section headings for dense UI groupings.',
+    sample: 'Key Signals',
+  },
+  h5: {
+    id: 'h5',
+    name: 'H5',
+    category: 'headings',
+    family: 'ui',
+    source: 'new',
+    className: 'text-h5',
+    usage: 'Minor heading tier for grouped content and labeled blocks.',
+    sample: 'Confidence',
+  },
+  h6: {
+    id: 'h6',
+    name: 'H6',
+    category: 'headings',
+    family: 'ui',
+    source: 'new',
+    className: 'text-h6',
+    usage: 'Smallest heading tier for compact interface structure.',
+    sample: 'Assumptions',
+  },
+  sectionLabel: {
+    id: 'eyebrow',
+    name: 'Eyebrow',
+    category: 'headings',
+    family: 'ui',
+    source: 'existing',
+    className: 'text-eyebrow',
+    usage: 'Uppercase section labels placed above headings or grouped content.',
+    sample: 'STRATEGIC RECOMMENDATION',
+  },
+  bodyL: {
+    id: 'body-lg',
+    name: 'Body Large',
+    category: 'body',
+    family: 'ui',
+    source: 'existing',
+    className: 'text-body-lg',
+    usage: 'Prominent explanatory copy and intro paragraphs.',
+    sample: 'Use this calculator to estimate what your funnel needs to look like.',
+  },
+  bodyM: {
+    id: 'body-md',
+    name: 'Body Medium',
+    category: 'body',
+    family: 'ui',
+    source: 'existing',
+    className: 'text-body-md',
+    usage: 'Default body copy for product UI and standard reading text.',
+    sample: 'This is the default body style for readable product copy.',
+  },
+  bodyS: {
+    id: 'body-sm',
+    name: 'Body Small',
+    category: 'body',
+    family: 'ui',
+    source: 'existing',
+    className: 'text-body-sm',
+    usage: 'Secondary descriptions and more compact interface copy.',
+    sample: 'Useful for denser cards and interface descriptions.',
+  },
+  bodyXS: {
+    id: 'body-xs',
+    name: 'Body Extra Small',
+    category: 'body',
+    family: 'ui',
+    source: 'new',
+    className: 'text-body-xs',
+    usage: 'Tight supporting copy where readability still matters.',
+    sample: 'Small but still readable supporting content.',
+  },
+  buttonText: {
+    id: 'button',
+    name: 'Button',
+    category: 'ui',
+    family: 'ui',
+    source: 'existing',
+    className: 'text-button',
+    usage: 'Buttons, segmented controls, and compact interactive actions.',
+    sample: 'Show advanced assumptions',
+  },
+  linkText: {
+    id: 'link',
+    name: 'Link',
+    category: 'ui',
+    family: 'ui',
+    source: 'existing',
+    className: 'text-link',
+    usage: 'Standalone navigational links and text CTAs.',
+    sample: 'Read more →',
+  },
+  tag: {
+    id: 'tag',
+    name: 'Tag',
+    category: 'ui',
+    family: 'ui',
+    source: 'existing',
+    className: 'text-tag',
+    usage: 'Compact taxonomy tags, chips, and categorical labels.',
+    sample: 'AI TOOLS',
+  },
+  meta: {
+    id: 'caption',
+    name: 'Caption',
+    category: 'ui',
+    family: 'ui',
+    source: 'existing',
+    className: 'text-caption',
+    usage: 'Muted metadata, dates, and low-emphasis contextual text.',
+    sample: 'March 11, 2026 · 2 uncertain answers',
+  },
+  metricValue: {
+    id: 'metric',
+    name: 'Metric',
+    category: 'ui',
+    family: 'ui',
+    source: 'existing',
+    className: 'text-metric',
+    usage: 'Numerical metrics, KPIs, and computed outputs.',
+    sample: '24,000',
+  },
+  formLabel: {
+    id: 'form-label',
+    name: 'Form Label',
+    category: 'forms',
+    family: 'ui',
+    source: 'existing',
+    className: 'text-form-label',
+    usage: 'Labels associated with text fields, selects, and other form controls.',
+    sample: 'Monthly Price',
+  },
+  inputText: {
+    id: 'input',
+    name: 'Input',
+    category: 'forms',
+    family: 'ui',
+    source: 'existing',
+    className: 'text-input',
+    usage: 'Text shown inside form inputs and textareas.',
+    sample: '1,000,000',
+  },
+  helperText: {
+    id: 'helper',
+    name: 'Helper',
+    category: 'forms',
+    family: 'ui',
+    source: 'existing',
+    className: 'text-helper',
+    usage: 'Supporting guidance shown below form controls.',
+    sample: 'Enter your annual recurring revenue target.',
+  },
+  errorText: {
+    id: 'form-error',
+    name: 'Form Error',
+    category: 'forms',
+    family: 'ui',
+    source: 'existing',
+    className: 'text-form-error',
+    usage: 'Validation feedback and inline error messages.',
+    sample: 'Please enter a valid number.',
+  },
+} satisfies Record<string, TextStyleToken>
+
+export const textClass = {
+  h1: TEXT_STYLES.h1.className,
+  h2: TEXT_STYLES.h2.className,
+  h3: TEXT_STYLES.h3.className,
+  h4: TEXT_STYLES.h4.className,
+  h5: TEXT_STYLES.h5.className,
+  h6: TEXT_STYLES.h6.className,
+  sectionLabel: TEXT_STYLES.sectionLabel.className,
+  bodyL: TEXT_STYLES.bodyL.className,
+  bodyM: TEXT_STYLES.bodyM.className,
+  bodyS: TEXT_STYLES.bodyS.className,
+  bodyXS: TEXT_STYLES.bodyXS.className,
+  buttonText: TEXT_STYLES.buttonText.className,
+  linkText: TEXT_STYLES.linkText.className,
+  tag: TEXT_STYLES.tag.className,
+  meta: TEXT_STYLES.meta.className,
+  metricValue: TEXT_STYLES.metricValue.className,
+  formLabel: TEXT_STYLES.formLabel.className,
+  inputText: TEXT_STYLES.inputText.className,
+  helperText: TEXT_STYLES.helperText.className,
+  errorText: TEXT_STYLES.errorText.className,
+}
+
+export const TEXT_STYLE_SECTIONS: TextStyleSection[] = [
+  {
+    id: 'headings',
+    title: 'Headings',
+    description: 'Heading hierarchy for pages, cards, and section structure.',
+    tokens: [
+      TEXT_STYLES.h1,
+      TEXT_STYLES.h2,
+      TEXT_STYLES.h3,
+      TEXT_STYLES.h4,
+      TEXT_STYLES.h5,
+      TEXT_STYLES.h6,
+      TEXT_STYLES.sectionLabel,
+    ],
+  },
+  {
+    id: 'body',
+    title: 'Body',
+    description: 'Body copy scale for long and short interface content.',
+    tokens: [TEXT_STYLES.bodyL, TEXT_STYLES.bodyM, TEXT_STYLES.bodyS, TEXT_STYLES.bodyXS],
+  },
+  {
+    id: 'ui',
+    title: 'UI',
+    description: 'Interface text patterns for controls, metadata, and signals.',
+    tokens: [
+      TEXT_STYLES.buttonText,
+      TEXT_STYLES.linkText,
+      TEXT_STYLES.tag,
+      TEXT_STYLES.meta,
+      TEXT_STYLES.metricValue,
+    ],
+  },
+  {
+    id: 'forms',
+    title: 'Forms',
+    description: 'Form labels, entered text, helpers, and validation states.',
+    tokens: [
+      TEXT_STYLES.formLabel,
+      TEXT_STYLES.inputText,
+      TEXT_STYLES.helperText,
+      TEXT_STYLES.errorText,
+    ],
+  },
+]
