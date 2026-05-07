@@ -392,3 +392,49 @@ input:-webkit-autofill:focus {
   display: inline-block;
   vertical-align: middle;
 }
+
+@layer components {
+  .tooltip {
+    @apply z-70 w-max max-w-[320px] rounded-[4px] px-2 py-1 text-[12px] leading-[18px] whitespace-normal shadow-md md:leading-[20px];
+    background-color: var(--color-gray-900);
+    color: var(--color-white);
+  }
+
+  .dark .tooltip {
+    background-color: var(--color-gray-800);
+  }
+
+  .tooltip-top {
+    @apply absolute bottom-full left-1/2 mb-1 -translate-x-1/2;
+  }
+
+  .tooltip-bottom {
+    @apply absolute top-full left-1/2 mt-1 -translate-x-1/2;
+  }
+
+  .tooltip-anim {
+    @apply translate-y-1 opacity-0 transition-all duration-150 ease-out;
+  }
+
+  .tooltip-anim-open {
+    @apply translate-y-0 opacity-100;
+  }
+
+  .action-feedback {
+    @apply pointer-events-none z-70 w-max max-w-[320px] rounded-[4px] px-2 py-1 text-[12px] leading-[18px] whitespace-normal shadow-md md:leading-[20px];
+    background-color: var(--color-gray-900);
+    color: var(--color-white);
+  }
+
+  .dark .action-feedback {
+    background-color: var(--color-gray-800);
+  }
+
+  .action-feedback-top {
+    @apply absolute bottom-full left-1/2 mb-1 -translate-x-1/2;
+  }
+
+  .action-feedback-anim {
+    @apply transition-opacity duration-150 ease-out;
+  }
+}

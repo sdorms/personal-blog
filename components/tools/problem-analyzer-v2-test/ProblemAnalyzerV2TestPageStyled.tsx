@@ -5,6 +5,8 @@ import { PROBLEM_ANALYZER_TEST_CASES } from '@/lib/problem-analyzer/v2/fixtures'
 import { analyzeProblem } from '@/lib/problem-analyzer/v2/interpreter'
 import SignalPill from '@/components/ui/SignalPill'
 import ResultHeadline from '@/components/tools/problem-analyzer-v2-test/ResultHeadline'
+import ProgressBar from '@/components/ui/ProgressBar'
+import ShareButton from '@/components/ui/ShareButton'
 
 export default function ProblemAnalyzerV2TestPage() {
   const [selectedCaseIndex, setSelectedCaseIndex] = useState(0)
@@ -15,19 +17,21 @@ export default function ProblemAnalyzerV2TestPage() {
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-10">
-      <div>
+      <div className="bg-card border-border rounded-lg p-6">
         <section className="border-border border-b py-5">
-          {/* grouping problem + demand signal */}
           <div className="space-y-3">
-            {/* Problem statement */}
             <div className="space-y-4">
-              <h2 className="text-eyebrow text-body">Problem</h2>
-
+              <div className="flex w-full items-end justify-between">
+                <h2 className="text-eyebrow text-body">Problem</h2>
+                <ShareButton />
+              </div>
               <p className="text-body-xs text-muted">{selectedCase.problemStatement}</p>
             </div>
-            {/* demand signal */}
             <div className="space-y-4">
-              <ResultHeadline tone={output.overallAssessment}>{output.summary}</ResultHeadline>
+              <div className="space-y-2">
+                <ResultHeadline tone={output.overallAssessment}>{output.summary}</ResultHeadline>
+                <ProgressBar tone={output.overallAssessment} />
+              </div>
               <p className="text-body-md text-heading">{output.detail}</p>
             </div>
           </div>
@@ -57,13 +61,13 @@ export default function ProblemAnalyzerV2TestPage() {
             <p className="text-body-sm text-body">{output.nextFocus.detail}</p>
           </div>
         </section>
-        <section className="border-border border-b py-5">
+        {/* <section className="border-border border-b py-5">
           <div className="space-y-4">
             <h2 className="text-eyebrow text-body">Confidence</h2>
             <p className="text-h4 text-heading">{output.confidence.level}</p>
             <p className="text-body-sm text-body">{output.confidence.explanation}</p>
           </div>
-        </section>
+        </section> */}
       </div>
     </main>
   )
