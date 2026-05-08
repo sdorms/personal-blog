@@ -7,6 +7,9 @@ import {
   useSearchParams,
   type ReadonlyURLSearchParams,
 } from 'next/navigation'
+import Button from '@/components/ui/Button'
+import Icon from '@/components/ui/Icon'
+import ProblemAnalyzerIntro from '@/components/tools/problem-analyzer/ProblemAnalyzerIntro'
 import QuestionCard from '@/components/tools/problem-analyzer/QuestionCard'
 import ResultsPanel, { type ResultModel } from '@/components/tools/problem-analyzer/ResultsPanel'
 import {
@@ -17,12 +20,14 @@ import {
 import type { AnswersMap, QuestionConfidenceLevel } from '@/lib/problem-analyzer/score'
 import { buildProblemAnalyzerV2Analysis } from '@/lib/problem-analyzer/v2/adapter'
 
+const INTRO_SCREEN_ID = 'intro'
 const FIRST_SCREEN_ID = PROBLEM_ANALYZER_SCHEMA.screens[0]?.id ?? 'problem'
 const SCREEN_CONFIDENCE = 'confidence'
 const SCREEN_RESULTS = 'results'
 const TOOL_OWNED_BASE_KEYS = ['problem', 'audience', 'screen'] as const
 const ALLOWED_QUESTION_IDS = new Set(Object.keys(PROBLEM_ANALYZER_SCHEMA.questions))
 const ALLOWED_SCREENS = new Set<string>([
+  INTRO_SCREEN_ID,
   ...PROBLEM_ANALYZER_SCHEMA.screens.map((screen) => screen.id),
   SCREEN_CONFIDENCE,
   SCREEN_RESULTS,
@@ -31,6 +36,83 @@ const ALLOWED_SCREENS = new Set<string>([
 type MissingSchemaReference = {
   screenId: string
   questionId: QuestionId
+}
+
+type WizardStepHeaderProps = {
+  stepNumber: number
+  totalSteps: number
+  title: string
+  description: string
+}
+
+type ProblemSummaryProps = {
+  problemText: string
+}
+
+type WizardNavigationProps = {
+  onPrevious: () => void
+  onNext: () => void
+  nextLabel?: string
+  isNextDisabled?: boolean
+}
+
+function truncateText(value: string, maxLength: number): string {
+  const trimmed = value.trim()
+  if (!trimmed) return 'Not set'
+  if (trimmed.length <= maxLength) return trimmed
+  return `${trimmed.slice(0, maxLength - 1).trimEnd()}…`
+}
+
+function WizardStepHeader({ stepNumber, totalSteps, title, description }: WizardStepHeaderProps) {
+  return (
+    <div className="space-y-2">
+      <p className="text-caption text-muted">
+        Step {stepNumber} of {totalSteps}
+      </p>
+      <h2 className="text-h2 text-heading">{title}</h2>
+      {description ? <p className="text-body-md text-body">{description}</p> : null}
+    </div>
+  )
+}
+
+function ProblemSummary({ problemText }: ProblemSummaryProps) {
+  return (
+    <section className="w-full rounded-lg border border-gray-200 p-3 dark:border-gray-800">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 space-y-2">
+          <p className="text-caption text-body">Problem</p>
+          <p className="text-body-md text-body break-words">{truncateText(problemText, 160)}</p>
+        </div>
+
+        <button
+          type="button"
+          className="text-body-xs text-muted hover:bg-subtle hover:text-body focus-visible:outline-primary-500 inline-flex items-center gap-1 rounded-[4px] px-1 py-1 focus-visible:outline-2"
+          aria-label="Edit problem"
+        >
+          <Icon name="edit" size="small" className="text-current" />
+          <span>Edit</span>
+        </button>
+      </div>
+    </section>
+  )
+}
+
+function WizardNavigation({
+  onPrevious,
+  onNext,
+  nextLabel = 'Next',
+  isNextDisabled = false,
+}: WizardNavigationProps) {
+  return (
+    <div className="flex w-full items-center justify-between">
+      <Button type="button" variant="text-back" onClick={onPrevious}>
+        Previous
+      </Button>
+      <Button type="button" variant="text" onClick={onNext} disabled={isNextDisabled}>
+        {nextLabel}
+      </Button>
+    </div>
+  )
 }
 
 function findMissingSchemaReferences(): MissingSchemaReference[] {
@@ -74,7 +156,17 @@ function parseConfidenceByQuestion(
 
 function parseScreenFromParams(params: ReadonlyURLSearchParams | URLSearchParams): string {
   const raw = params.get('screen')
-  if (!raw) return FIRST_SCREEN_ID
+  if (!raw) {
+    const hasWizardState =
+      Boolean(params.get('problem')) ||
+      Boolean(params.get('audience')) ||
+      Array.from(ALLOWED_QUESTION_IDS).some((questionId) =>
+        Boolean(params.get(`q_${questionId}`))
+      ) ||
+      Array.from(ALLOWED_QUESTION_IDS).some((questionId) => Boolean(params.get(`c_${questionId}`)))
+
+    return hasWizardState ? FIRST_SCREEN_ID : INTRO_SCREEN_ID
+  }
   return ALLOWED_SCREENS.has(raw) ? raw : FIRST_SCREEN_ID
 }
 
@@ -105,7 +197,7 @@ export default function ProblemAnalyzerWizard() {
   const [confidenceByQuestion, setConfidenceByQuestion] = useState<
     Partial<Record<QuestionId, QuestionConfidenceLevel>>
   >({})
-  const [screenId, setScreenId] = useState<string>(FIRST_SCREEN_ID)
+  const [screenId, setScreenId] = useState<string>(INTRO_SCREEN_ID)
   const [debouncedProblemText, setDebouncedProblemText] = useState('')
   const [debouncedAudienceText, setDebouncedAudienceText] = useState('')
   const [attemptedNext, setAttemptedNext] = useState(false)
@@ -196,7 +288,7 @@ export default function ProblemAnalyzerWizard() {
       }
     }
 
-    if (screenId !== FIRST_SCREEN_ID) {
+    if (screenId !== INTRO_SCREEN_ID) {
       sp.set('screen', screenId)
     } else {
       sp.delete('screen')
@@ -220,6 +312,7 @@ export default function ProblemAnalyzerWizard() {
   ])
 
   const totalStepsBeforeResults = PROBLEM_ANALYZER_SCHEMA.screens.length + 1
+  const isIntroStep = screenId === INTRO_SCREEN_ID
   const currentScreen =
     PROBLEM_ANALYZER_SCHEMA.screens.find((screen) => screen.id === screenId) ?? null
   const currentScreenIndex = currentScreen
@@ -227,9 +320,8 @@ export default function ProblemAnalyzerWizard() {
     : -1
   const isConfidenceStep = screenId === SCREEN_CONFIDENCE
   const isResultsStep = screenId === SCREEN_RESULTS
-  const [isHeaderEditing, setIsHeaderEditing] = useState(false)
-  const [headerProblemDraft, setHeaderProblemDraft] = useState(problemText)
-  const [headerAudienceDraft, setHeaderAudienceDraft] = useState(audienceText)
+  const isPostDefineQuestionScreen =
+    Boolean(currentScreen) && screenId !== FIRST_SCREEN_ID && !isConfidenceStep && !isResultsStep
 
   const currentMissingQuestionIds = useMemo(() => {
     if (!currentScreen || isConfidenceStep || isResultsStep) return []
@@ -261,21 +353,10 @@ export default function ProblemAnalyzerWizard() {
   }, [attemptedNext, currentMissingQuestionIds, isAudienceTextMissing, isProblemTextMissing])
 
   const canViewResults = isConfidenceStep
-  const progressStep = isConfidenceStep
-    ? totalStepsBeforeResults
-    : Math.max(1, currentScreenIndex + 1)
-  const progressPercent = Math.round((progressStep / totalStepsBeforeResults) * 100)
   const headerTitle = isConfidenceStep ? 'Confidence Calibration' : (currentScreen?.title ?? '')
   const headerDescription = isConfidenceStep
     ? 'Review your confidence in each answer.'
     : (currentScreen?.description ?? '')
-
-  useEffect(() => {
-    if (!isHeaderEditing) {
-      setHeaderProblemDraft(problemText)
-      setHeaderAudienceDraft(audienceText)
-    }
-  }, [audienceText, isHeaderEditing, problemText])
 
   const resultModel: ResultModel = useMemo(() => {
     return buildProblemAnalyzerV2Analysis({
@@ -340,8 +421,12 @@ export default function ProblemAnalyzerWizard() {
       setScreenId(lastSchemaScreen?.id ?? FIRST_SCREEN_ID)
       return
     }
+    if (screenId === FIRST_SCREEN_ID) {
+      setScreenId(INTRO_SCREEN_ID)
+      return
+    }
     if (!currentScreen) {
-      setScreenId(FIRST_SCREEN_ID)
+      setScreenId(INTRO_SCREEN_ID)
       return
     }
     const prevIndex = Math.max(0, currentScreenIndex - 1)
@@ -355,7 +440,7 @@ export default function ProblemAnalyzerWizard() {
     setDebouncedAudienceText('')
     setAnswers({})
     setConfidenceByQuestion({})
-    setScreenId(FIRST_SCREEN_ID)
+    setScreenId(INTRO_SCREEN_ID)
 
     const sp = new URLSearchParams(searchParams.toString())
     for (const key of TOOL_OWNED_BASE_KEYS) {
@@ -370,327 +455,247 @@ export default function ProblemAnalyzerWizard() {
     router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false })
   }
 
-  const saveHeaderContext = () => {
-    setProblemText(headerProblemDraft)
-    setAudienceText(headerAudienceDraft)
-    setIsHeaderEditing(false)
-  }
-
-  const cancelHeaderContextEdit = () => {
-    setHeaderProblemDraft(problemText)
-    setHeaderAudienceDraft(audienceText)
-    setIsHeaderEditing(false)
-  }
-
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
       {!isResultsStep ? (
-        <div className="space-y-6">
-          <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-950">
-            <h1 className="text-3xl font-bold tracking-tight">Problem Analyzer</h1>
-
-            {screenId === FIRST_SCREEN_ID ? (
-              <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                Answer a short set of questions about the problem you want to solve to get a
-                structured read on strengths, risks, and what you should validate next.
-              </p>
-            ) : null}
-
-            {screenId !== FIRST_SCREEN_ID ? (
-              <div className="mt-3">
-                {!isHeaderEditing ? (
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-1 text-sm leading-snug text-gray-600 dark:text-gray-400">
-                      <p className="break-words">
-                        <span className="font-medium text-gray-700 dark:text-gray-300">
-                          Problem:
-                        </span>{' '}
-                        {problemText || 'Not set'}
-                      </p>
-                      <p className="break-words">
-                        <span className="font-medium text-gray-700 dark:text-gray-300">
-                          Audience:
-                        </span>{' '}
-                        {audienceText || 'Not set'}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setIsHeaderEditing(true)}
-                      className="cursor-pointer text-xs font-medium text-gray-600 underline hover:text-gray-900 focus-visible:ring-2 focus-visible:ring-gray-500 dark:text-gray-300 dark:hover:text-white dark:focus-visible:ring-gray-400"
-                    >
-                      Edit
-                    </button>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <div>
-                      <label
-                        htmlFor="headerProblemText"
-                        className="text-xs font-medium text-gray-700 dark:text-gray-200"
-                      >
-                        Problem
-                      </label>
-                      <textarea
-                        id="headerProblemText"
-                        value={headerProblemDraft}
-                        onChange={(e) => setHeaderProblemDraft(e.target.value)}
-                        rows={2}
-                        className="mt-1 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-800 dark:bg-gray-950"
-                      />
-                    </div>
-                    <div>
-                      <label
-                        htmlFor="headerAudienceText"
-                        className="text-xs font-medium text-gray-700 dark:text-gray-200"
-                      >
-                        Audience
-                      </label>
-                      <textarea
-                        id="headerAudienceText"
-                        value={headerAudienceDraft}
-                        onChange={(e) => setHeaderAudienceDraft(e.target.value)}
-                        rows={2}
-                        className="mt-1 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-800 dark:bg-gray-950"
-                      />
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={saveHeaderContext}
-                        className="cursor-pointer rounded-xl bg-gray-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-gray-800 focus-visible:ring-2 focus-visible:ring-gray-500 dark:bg-gray-100 dark:text-black dark:hover:bg-gray-200 dark:focus-visible:ring-gray-400"
-                      >
-                        Save
-                      </button>
-                      <button
-                        type="button"
-                        onClick={cancelHeaderContextEdit}
-                        className="cursor-pointer rounded-xl border border-gray-200 px-3 py-1.5 text-xs font-medium hover:bg-gray-50 focus-visible:ring-2 focus-visible:ring-gray-500 dark:border-gray-700 dark:hover:bg-gray-900 dark:focus-visible:ring-gray-400"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : null}
-
-            {screenId !== FIRST_SCREEN_ID ? (
-              <div className="mt-4 border-t border-gray-200 dark:border-gray-800" />
-            ) : null}
-
-            <h2 className="mt-5 text-xl font-semibold">{headerTitle}</h2>
-            {headerDescription ? (
-              <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">{headerDescription}</p>
-            ) : null}
-
-            <div className="mt-3 flex items-center gap-3">
-              <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-900">
-                <div
-                  className="h-full rounded-full bg-gray-900 transition-[width] dark:bg-gray-100"
-                  style={{ width: `${progressPercent}%` }}
+        isIntroStep ? (
+          <ProblemAnalyzerIntro onStart={() => setScreenId(FIRST_SCREEN_ID)} />
+        ) : (
+          <div className="space-y-6">
+            {currentScreen?.id === FIRST_SCREEN_ID ? (
+              <section className="mx-auto w-full max-w-3xl space-y-8">
+                <WizardStepHeader
+                  stepNumber={1}
+                  totalSteps={totalStepsBeforeResults}
+                  title="Define your problem"
+                  description="Start by describing the problem you want to evaluate and who experiences it."
                 />
-              </div>
-              <p className="text-xs font-medium text-gray-600 dark:text-gray-300">
-                {progressStep} of {totalStepsBeforeResults}
-              </p>
-            </div>
-          </section>
 
-          {currentScreen?.id === FIRST_SCREEN_ID ? (
-            <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-950">
-              <div className="space-y-4">
-                <div>
-                  <label htmlFor="problemText" className="text-sm font-medium">
-                    Problem statement
-                  </label>
-                  <textarea
-                    id="problemText"
-                    value={problemText}
-                    onChange={(e) => setProblemText(e.target.value)}
-                    placeholder="Describe the problem in one or two sentences..."
-                    rows={4}
-                    className={[
-                      'mt-2 w-full rounded-xl border bg-white px-3 py-2 text-sm dark:bg-gray-950',
-                      attemptedNext && isProblemTextMissing
-                        ? 'border-red-300 dark:border-red-900/60'
-                        : 'border-gray-200 dark:border-gray-800',
-                    ].join(' ')}
-                  />
+                <div className="space-y-8">
+                  <div className="space-y-4">
+                    <div className="field">
+                      <label htmlFor="problemText" className="field-label">
+                        Problem statement
+                      </label>
+
+                      <textarea
+                        id="problemText"
+                        value={problemText}
+                        onChange={(e) => setProblemText(e.target.value)}
+                        placeholder="Describe the problem in one or two sentences..."
+                        rows={4}
+                        aria-invalid={attemptedNext && isProblemTextMissing}
+                        className={[
+                          'field-control',
+                          attemptedNext && isProblemTextMissing && 'field-control-error',
+                        ]
+                          .filter(Boolean)
+                          .join(' ')}
+                      />
+                    </div>
+
+                    <div className="field">
+                      <label htmlFor="audienceText" className="field-label">
+                        Who experiences this problem?
+                      </label>
+
+                      <textarea
+                        id="audienceText"
+                        value={audienceText}
+                        onChange={(e) => setAudienceText(e.target.value)}
+                        placeholder="Describe the specific audience affected by this problem..."
+                        rows={4}
+                        aria-invalid={attemptedNext && isAudienceTextMissing}
+                        className={[
+                          'field-control',
+                          attemptedNext && isAudienceTextMissing && 'field-control-error',
+                        ]
+                          .filter(Boolean)
+                          .join(' ')}
+                      />
+                    </div>
+
+                    {attemptedNext && (isProblemTextMissing || isAudienceTextMissing) ? (
+                      <p role="alert" className="field-error">
+                        Please complete all fields before continuing
+                      </p>
+                    ) : null}
+                  </div>
+
+                  <WizardNavigation onPrevious={goToPreviousScreen} onNext={goToNextScreen} />
                 </div>
-
-                <div>
-                  <label htmlFor="audienceText" className="text-sm font-medium">
-                    Who experiences this problem?
-                  </label>
-                  <textarea
-                    id="audienceText"
-                    value={audienceText}
-                    onChange={(e) => setAudienceText(e.target.value)}
-                    placeholder="Describe the specific audience affected by this problem..."
-                    rows={3}
-                    className={[
-                      'mt-2 w-full rounded-xl border bg-white px-3 py-2 text-sm dark:bg-gray-950',
-                      attemptedNext && isAudienceTextMissing
-                        ? 'border-red-300 dark:border-red-900/60'
-                        : 'border-gray-200 dark:border-gray-800',
-                    ].join(' ')}
-                  />
-                </div>
-              </div>
-            </section>
-          ) : null}
-
-          {currentScreen
-            ? currentScreen.questionIds.map((questionId) => {
-                const question = PROBLEM_ANALYZER_SCHEMA.questions[questionId]
-                if (!question) {
-                  if (process.env.NODE_ENV === 'development') {
-                    console.error(
-                      `[ProblemAnalyzer] Invalid schema reference during render: screen "${currentScreen.id}" references missing question "${questionId}".`
-                    )
-                  }
-                  return null
-                }
-                return (
-                  <QuestionCard
-                    key={question.id}
-                    question={question}
-                    value={answers[question.id]}
-                    onChange={(value) => onSelectOption(question.id, value)}
-                    isInvalid={attemptedNext && missingQuestionIds.includes(question.id)}
-                  />
-                )
-              })
-            : null}
-
-          {isConfidenceStep ? (
-            <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-950">
-              <h2 className="text-xl font-semibold">Confidence Calibration (Optional)</h2>
-              <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                Startup ideas often rely on assumptions early on. This step helps distinguish
-                between answers based on evidence and those based on guesswork. Lower confidence
-                usually indicates where further discovery or customer validation is needed.
-              </p>
-
-              <div className="mt-4 space-y-3">
-                {answeredQuestions.length > 0 ? (
-                  answeredQuestions.map((question) => {
-                    const selectedLevel = confidenceByQuestion[question.id]
-                    const selectedOption = question.options.find(
-                      (option) => option.id === answers[question.id]
-                    )
-
-                    if (!selectedOption) {
-                      return null
-                    }
-
-                    return (
-                      <div
-                        key={question.id}
-                        className="rounded-xl border border-gray-200 p-4 dark:border-gray-800"
-                      >
-                        <p className="text-sm font-medium">{question.title}</p>
-                        <p className="mt-1 text-xs text-gray-600 dark:text-gray-300">
-                          Your answer: {selectedOption.label}
-                        </p>
-
-                        <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
-                          Confidence level
-                        </p>
-                        <div className="mt-2 flex flex-wrap items-center gap-4">
-                          {(['low', 'med', 'high'] as const).map((level) => {
-                            const checked = selectedLevel === level
-                            const label =
-                              level === 'low' ? 'Low' : level === 'med' ? 'Medium' : 'High'
-                            return (
-                              <label
-                                key={level}
-                                className="flex cursor-pointer items-center gap-2 text-sm"
-                              >
-                                <input
-                                  type="radio"
-                                  name={`confidence-${question.id}`}
-                                  checked={checked}
-                                  onChange={() =>
-                                    setConfidenceByQuestion((current) => ({
-                                      ...current,
-                                      [question.id]: level,
-                                    }))
-                                  }
-                                  className="h-4 w-4 border-gray-300 text-gray-900 focus:ring-gray-500"
-                                />
-                                <span>{label}</span>
-                              </label>
-                            )
-                          })}
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setConfidenceByQuestion((current) => {
-                                const next = { ...current }
-                                delete next[question.id]
-                                return next
-                              })
-                            }
-                            className="cursor-pointer text-xs text-gray-600 underline hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
-                          >
-                            Clear
-                          </button>
-                        </div>
-                      </div>
-                    )
-                  })
-                ) : (
-                  <p className="text-sm text-gray-600 dark:text-gray-300">
-                    No answered questions yet.
-                  </p>
-                )}
-              </div>
-            </section>
-          ) : null}
-
-          <div className="space-y-2">
-            {attemptedNext &&
-            (missingQuestionIds.length > 0 || isProblemTextMissing || isAudienceTextMissing) ? (
-              <p role="alert" className="text-sm text-red-700 dark:text-red-300">
-                Please answer all questions before continuing.
-              </p>
+              </section>
             ) : null}
 
-            <div className="flex items-center justify-between">
-              <button
-                type="button"
-                onClick={goToPreviousScreen}
-                disabled={screenId === FIRST_SCREEN_ID}
-                className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-medium transition-colors enabled:cursor-pointer enabled:hover:bg-gray-50 enabled:focus-visible:ring-2 enabled:focus-visible:ring-gray-500 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-700 dark:enabled:hover:bg-gray-900 dark:enabled:focus-visible:ring-gray-400"
-              >
-                Back
-              </button>
+            {isPostDefineQuestionScreen && currentScreen ? (
+              <section className="mx-auto w-full max-w-3xl space-y-8">
+                <ProblemSummary problemText={problemText} />
 
-              {!isConfidenceStep ? (
-                <button
-                  type="button"
-                  onClick={goToNextScreen}
-                  disabled={!currentScreen}
-                  className="rounded-xl bg-gray-900 px-4 py-2 text-sm font-medium text-white transition-colors enabled:cursor-pointer enabled:hover:bg-gray-800 enabled:focus-visible:ring-2 enabled:focus-visible:ring-gray-500 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-gray-100 dark:text-black dark:enabled:hover:bg-gray-200 dark:enabled:focus-visible:ring-gray-400"
-                >
-                  Next
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setScreenId(SCREEN_RESULTS)}
-                  disabled={!canViewResults}
-                  className="rounded-xl bg-gray-900 px-4 py-2 text-sm font-medium text-white transition-colors enabled:cursor-pointer enabled:hover:bg-gray-800 enabled:focus-visible:ring-2 enabled:focus-visible:ring-gray-500 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-gray-100 dark:text-black dark:enabled:hover:bg-gray-200 dark:enabled:focus-visible:ring-gray-400"
-                >
-                  View results
-                </button>
-              )}
-            </div>
+                <WizardStepHeader
+                  stepNumber={currentScreenIndex + 1}
+                  totalSteps={totalStepsBeforeResults}
+                  title={headerTitle}
+                  description={headerDescription}
+                />
+
+                <div className="space-y-8">
+                  <div className="space-y-6">
+                    {currentScreen.questionIds.map((questionId) => {
+                      const question = PROBLEM_ANALYZER_SCHEMA.questions[questionId]
+                      if (!question) {
+                        if (process.env.NODE_ENV === 'development') {
+                          console.error(
+                            `[ProblemAnalyzer] Invalid schema reference during render: screen "${currentScreen.id}" references missing question "${questionId}".`
+                          )
+                        }
+                        return null
+                      }
+                      return (
+                        <QuestionCard
+                          key={question.id}
+                          question={question}
+                          value={answers[question.id]}
+                          onChange={(value) => onSelectOption(question.id, value)}
+                          isInvalid={attemptedNext && missingQuestionIds.includes(question.id)}
+                        />
+                      )
+                    })}
+                  </div>
+
+                  <div className="space-y-2">
+                    {attemptedNext &&
+                    (missingQuestionIds.length > 0 ||
+                      isProblemTextMissing ||
+                      isAudienceTextMissing) ? (
+                      <p role="alert" className="field-error">
+                        Please answer all questions before continuing
+                      </p>
+                    ) : null}
+
+                    <WizardNavigation
+                      onPrevious={goToPreviousScreen}
+                      onNext={goToNextScreen}
+                      isNextDisabled={!currentScreen}
+                    />
+                  </div>
+                </div>
+              </section>
+            ) : null}
+
+            {isConfidenceStep ? (
+              <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-950">
+                <h2 className="text-xl font-semibold">Confidence Calibration (Optional)</h2>
+                <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                  Startup ideas often rely on assumptions early on. This step helps distinguish
+                  between answers based on evidence and those based on guesswork. Lower confidence
+                  usually indicates where further discovery or customer validation is needed.
+                </p>
+
+                <div className="mt-4 space-y-3">
+                  {answeredQuestions.length > 0 ? (
+                    answeredQuestions.map((question) => {
+                      const selectedLevel = confidenceByQuestion[question.id]
+                      const selectedOption = question.options.find(
+                        (option) => option.id === answers[question.id]
+                      )
+
+                      if (!selectedOption) {
+                        return null
+                      }
+
+                      return (
+                        <div
+                          key={question.id}
+                          className="rounded-xl border border-gray-200 p-4 dark:border-gray-800"
+                        >
+                          <p className="text-sm font-medium">{question.title}</p>
+                          <p className="mt-1 text-xs text-gray-600 dark:text-gray-300">
+                            Your answer: {selectedOption.label}
+                          </p>
+
+                          <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                            Confidence level
+                          </p>
+                          <div className="mt-2 flex flex-wrap items-center gap-4">
+                            {(['low', 'med', 'high'] as const).map((level) => {
+                              const checked = selectedLevel === level
+                              const label =
+                                level === 'low' ? 'Low' : level === 'med' ? 'Medium' : 'High'
+                              return (
+                                <label
+                                  key={level}
+                                  className="flex cursor-pointer items-center gap-2 text-sm"
+                                >
+                                  <input
+                                    type="radio"
+                                    name={`confidence-${question.id}`}
+                                    checked={checked}
+                                    onChange={() =>
+                                      setConfidenceByQuestion((current) => ({
+                                        ...current,
+                                        [question.id]: level,
+                                      }))
+                                    }
+                                    className="h-4 w-4 border-gray-300 text-gray-900 focus:ring-gray-500"
+                                  />
+                                  <span>{label}</span>
+                                </label>
+                              )
+                            })}
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setConfidenceByQuestion((current) => {
+                                  const next = { ...current }
+                                  delete next[question.id]
+                                  return next
+                                })
+                              }
+                              className="cursor-pointer text-xs text-gray-600 underline hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
+                            >
+                              Clear
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    })
+                  ) : (
+                    <p className="text-sm text-gray-600 dark:text-gray-300">
+                      No answered questions yet.
+                    </p>
+                  )}
+                </div>
+              </section>
+            ) : null}
+
+            {screenId !== FIRST_SCREEN_ID && !isPostDefineQuestionScreen ? (
+              <div className="space-y-2">
+                {attemptedNext &&
+                (missingQuestionIds.length > 0 || isProblemTextMissing || isAudienceTextMissing) ? (
+                  <p role="alert" className="text-sm text-red-700 dark:text-red-300">
+                    Please answer all questions before continuing.
+                  </p>
+                ) : null}
+
+                {!isConfidenceStep ? (
+                  <WizardNavigation
+                    onPrevious={goToPreviousScreen}
+                    onNext={goToNextScreen}
+                    isNextDisabled={!currentScreen}
+                  />
+                ) : (
+                  <WizardNavigation
+                    onPrevious={goToPreviousScreen}
+                    onNext={() => setScreenId(SCREEN_RESULTS)}
+                    nextLabel="View results"
+                    isNextDisabled={!canViewResults}
+                  />
+                )}
+              </div>
+            ) : null}
           </div>
-        </div>
+        )
       ) : (
         <div className="space-y-6">
           <ResultsPanel result={resultModel} />
