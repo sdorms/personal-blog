@@ -8,10 +8,10 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 }
 
 const CONTAINED_BASE_CLASSNAME =
-  'inline-flex items-center justify-center rounded-lg px-4 py-2 text-button transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent'
+  'inline-flex cursor-pointer items-center justify-center rounded-lg px-4 py-2 text-button transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent'
 
 const TEXT_BASE_CLASSNAME =
-  'inline-flex items-center gap-2 px-0 py-0 text-link transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent'
+  'inline-flex cursor-pointer items-center gap-2 px-0 py-0 text-link transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent'
 
 const VARIANT_CLASSNAMES: Record<ButtonVariant, string> = {
   primary: 'bg-primary-500 text-white hover:bg-primary-600',

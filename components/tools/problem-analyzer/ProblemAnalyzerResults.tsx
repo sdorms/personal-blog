@@ -18,7 +18,7 @@ export default function ProblemAnalyzerResults({
   output,
 }: ProblemAnalyzerResultsProps) {
   return (
-    <div className="bg-card border-border rounded-lg p-6">
+    <div className="surface-card">
       <section className="border-border border-b py-5">
         <div className="space-y-3">
           <div className="space-y-4">
@@ -78,14 +78,14 @@ export default function ProblemAnalyzerResults({
           <p className="text-body-sm text-body">{output.nextFocus.detail}</p>
         </div>
       </section>
-
-      <section className="py-5">
+      {/* Hidden confidence section for now but left in case I want to reintroduce in future */}
+      {/* <section className="py-5">
         <div className="space-y-4">
           <h2 className="text-eyebrow text-body">Confidence</h2>
           <p className="text-h4 text-heading capitalize">{output.confidence.level}</p>
           <p className="text-body-sm text-body">{output.confidence.explanation}</p>
         </div>
-      </section>
+      </section> */}
     </div>
   )
 }

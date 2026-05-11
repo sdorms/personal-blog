@@ -1,11 +1,13 @@
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 import DesignSystemPageShell from '@/components/design-system/DesignSystemPageShell'
+import RadioGroupDemo from '@/components/design-system/RadioGroupDemo'
 import DesignSystemSectionHeader from '@/components/design-system/DesignSystemSectionHeader'
 
 export const metadata: Metadata = {
   title: 'Design System - Fields',
-  description: 'Reusable field primitives for labels, controls, helper text, and error states.',
+  description:
+    'Reusable field and radio primitives for labels, controls, helper text, and error states.',
 }
 
 function Specimen({
@@ -179,6 +181,216 @@ export default function Page() {
               </p>
               <p className="text-body-sm text-body">
                 Error fields preserve the focus outline while keeping the danger border override.
+              </p>
+            </div>
+          </Specimen>
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <DesignSystemSectionHeader
+          title="Radio Primitives"
+          description="These CSS primitives define reusable radio group and radio option shells only. Existing production radios should keep their current implementation until they are migrated intentionally."
+        />
+
+        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-950">
+          <div className="space-y-3">
+            <p className="text-body-md text-body">
+              Reusable components: <code className="text-helper text-heading">RadioGroup</code> and{' '}
+              <code className="text-helper text-heading">RadioOption</code>.
+            </p>
+            <p className="text-body-md text-body">
+              Available primitives: <code className="text-helper text-heading">.radio-group</code>,{' '}
+              <code className="text-helper text-heading">.radio-group-header</code>,{' '}
+              <code className="text-helper text-heading">.radio-group-label</code>,{' '}
+              <code className="text-helper text-heading">.radio-group-helper</code>,{' '}
+              <code className="text-helper text-heading">.radio-options</code>,{' '}
+              <code className="text-helper text-heading">.radio-option</code>,{' '}
+              <code className="text-helper text-heading">.radio-option-input</code>,{' '}
+              <code className="text-helper text-heading">.radio-option-control</code>,{' '}
+              <code className="text-helper text-heading">.radio-option-indicator</code>,{' '}
+              <code className="text-helper text-heading">.radio-option-content</code>,{' '}
+              <code className="text-helper text-heading">.radio-option-label</code>,{' '}
+              <code className="text-helper text-heading">.radio-option-helper</code>, and{' '}
+              <code className="text-helper text-heading">.radio-group-error</code>.
+            </p>
+            <p className="text-helper text-muted">
+              Selected, disabled, focus-visible, and error states are handled with native input
+              selectors plus <code className="text-heading">.radio-option-error</code> and{' '}
+              <code className="text-heading">aria-invalid=&quot;true&quot;</code> support when
+              needed.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <Specimen
+            title="Default Radio Group"
+            code='<RadioGroup name="problemFrequency" value={value} onValueChange={setValue}>...</RadioGroup>'
+            note="The base component uses a semantic fieldset with native radios and a clickable card label."
+          >
+            <RadioGroupDemo
+              label="Problem frequency"
+              name="problem-frequency-default"
+              options={[
+                {
+                  value: 'rarely',
+                  label: 'Rarely',
+                  helper: 'Occurs occasionally and does not block most workflows.',
+                },
+                {
+                  value: 'frequently',
+                  label: 'Frequently',
+                  helper: 'Shows up weekly or more and creates regular drag.',
+                },
+              ]}
+            />
+          </Specimen>
+
+          <Specimen
+            title="Selected State"
+            code='<RadioOption value="frequently" label="Frequently" />'
+            note="Selection is controlled by the group value while native arrow-key behavior stays intact."
+          >
+            <RadioGroupDemo
+              label="Workflow maturity"
+              name="workflow-maturity-selected"
+              initialValue="repeatable"
+              options={[
+                {
+                  value: 'informal',
+                  label: 'Mostly informal',
+                  helper: 'The team still relies on ad hoc coordination.',
+                },
+                {
+                  value: 'repeatable',
+                  label: 'Repeatable process',
+                  helper: 'The same operating rhythm is followed most weeks.',
+                },
+              ]}
+            />
+          </Specimen>
+
+          <Specimen
+            title="Helper Text"
+            code='helper="How often does this occur?"'
+            note="Group helper text is announced through aria-describedby on each radio."
+          >
+            <RadioGroupDemo
+              label="Team size"
+              helper="Choose the range that best reflects the people involved in the workflow."
+              name="team-size-helper"
+              options={[
+                {
+                  value: 'small',
+                  label: '1 to 5 people',
+                  helper: 'Typical for a narrow or single-team workflow.',
+                },
+                {
+                  value: 'large',
+                  label: '6 or more people',
+                  helper: 'Common when several teams need shared visibility.',
+                },
+              ]}
+            />
+          </Specimen>
+
+          <Specimen
+            title="Error State"
+            code='error="Please select an option" required'
+            note="Error copy is connected through aria-describedby and invalid state is applied to the radios."
+          >
+            <RadioGroupDemo
+              label="Primary goal"
+              helper="Pick the outcome you want this workflow to optimize first."
+              error="Please select the primary outcome this workflow should improve."
+              name="primary-goal-error"
+              required
+              options={[
+                {
+                  value: 'save-time',
+                  label: 'Save time each week',
+                  helper: 'Reduce repetitive status chasing and manual updates.',
+                },
+                {
+                  value: 'improve-quality',
+                  label: 'Improve decision quality',
+                  helper: 'Give stakeholders cleaner, more reliable signals.',
+                },
+              ]}
+            />
+          </Specimen>
+
+          <Specimen
+            title="Disabled Option"
+            code="disabled on <RadioOption />"
+            note="Disabled options stay readable, keep native semantics, and suppress active hover affordances."
+          >
+            <RadioGroupDemo
+              label="Review cadence"
+              name="review-cadence-disabled"
+              initialValue="weekly"
+              options={[
+                {
+                  value: 'weekly',
+                  label: 'Weekly',
+                  helper: 'Best when the workflow changes often.',
+                },
+                {
+                  value: 'monthly',
+                  label: 'Monthly',
+                  helper: 'Locked until the reporting integration is configured.',
+                  disabled: true,
+                },
+              ]}
+            />
+          </Specimen>
+
+          <Specimen
+            title="Long Helper Copy"
+            code='helper="Longer guidance can live at the group or option level."'
+            note="Longer copy wraps inside the existing primitives without changing the radio card structure."
+          >
+            <RadioGroupDemo
+              label="Implementation scope"
+              helper="Use this group when a decision needs a little more framing before someone can choose confidently. The helper text should remain secondary, readable, and associated to each radio in assistive technology."
+              name="implementation-scope-long-helper"
+              initialValue="phased"
+              options={[
+                {
+                  value: 'phased',
+                  label: 'Phased rollout',
+                  helper:
+                    'Start with one high-friction workflow, confirm that the new process is stable, and expand only after the team has a repeatable operating rhythm.',
+                },
+                {
+                  value: 'full-launch',
+                  label: 'Full launch',
+                  helper:
+                    'Adopt the process across the entire team at once when the tooling, ownership, and reporting path are already clearly defined.',
+                },
+              ]}
+            />
+          </Specimen>
+
+          <Specimen
+            title="State Notes"
+            code=".radio-option selected/disabled/focus-visible behavior"
+            note="Use this as implementation guidance while production radios are still on their current markup."
+          >
+            <div className="border-border bg-subtle space-y-3 rounded-lg border p-4">
+              <p className="text-body-sm text-body">
+                Checked options use <code className="text-helper">primary-600</code> for the card
+                border while the custom indicator dot becomes visible.
+              </p>
+              <p className="text-body-sm text-body">
+                Keyboard focus uses the same visible{' '}
+                <code className="text-helper">primary-500</code> outline and subtle ring pattern as{' '}
+                <code className="text-helper">.field-control</code>.
+              </p>
+              <p className="text-body-sm text-body">
+                Error options keep the danger border override even while the focus outline stays
+                primary for accessibility.
               </p>
             </div>
           </Specimen>
