@@ -1,5 +1,5 @@
-import type { QuestionId } from '../schema.ts'
-import type { AnswersMap, QuestionConfidenceLevel } from '../score.ts'
+import { PROBLEM_ANALYZER_SCHEMA, type QuestionId } from '../schema'
+import type { AnswersMap, QuestionConfidenceLevel } from '../score'
 
 export type Level = 0 | 1 | 2
 
@@ -47,6 +47,23 @@ export type SignalKey =
   | 'weak_timing_signal'
   | 'market_does_not_recognize_problem'
 
+export type InsightType = 'strength' | 'weakness' | 'neutral'
+
+export type Insight = {
+  id: string
+  questionId: QuestionId
+  signalKey: SignalKey
+  type: InsightType
+  title: string
+  summary: string
+  question: string
+  answer: string
+  whyItMatters: string
+  nextFocus?: string
+  priority: number
+  questionOrder: number
+}
+
 export type ConfidenceLevel = 'low' | 'medium' | 'high'
 
 type DirectQuestionId =
@@ -70,6 +87,9 @@ export type ResultBlueprint = {
   primaryRisk: PrimaryRisk
   selectedStrengths: SignalKey[]
   selectedRisks: SignalKey[]
+  insights: Insight[]
+  keyWeaknessIds: string[]
+  keyStrengthIds: string[]
   recommendationType: RecommendationType
   recommendationKey: PrimaryRisk
   nextFocusType: NextFocusType
@@ -82,6 +102,7 @@ export type ResultOutput = {
   summary: string
   detail: string
   signals: Array<{
+    signalKey: SignalKey
     label: string
     type: 'positive' | 'negative'
   }>
@@ -97,6 +118,9 @@ export type ResultOutput = {
     level: ConfidenceLevel
     explanation: string
   }
+  insights: Insight[]
+  keyWeaknessIds: string[]
+  keyStrengthIds: string[]
 }
 
 const DIRECT_LEVELS: Record<DirectQuestionId, OptionLevelMap> = {
@@ -228,6 +252,217 @@ const SIGNAL_LABELS: Record<SignalKey, string> = {
   strong_incumbents: 'Strong incumbents',
   weak_timing_signal: 'Weak timing',
   market_does_not_recognize_problem: 'Unrecognized problem',
+}
+
+type InsightCopy = {
+  title: string
+  summary: string
+  whyItMatters: string
+  nextFocus?: string
+}
+
+const BASE_INSIGHT_COPY: Record<SignalKey, InsightCopy> = {
+  active_customer_behavior: {
+    title: 'Active customer behavior',
+    summary: 'Customers are already taking action, which suggests the problem is felt in practice.',
+    whyItMatters:
+      'Observable behavior is stronger than stated interest because it shows customers are already changing what they do.',
+  },
+  customers_paying_existing_solutions: {
+    title: 'Customers already pay for solutions',
+    summary: 'Existing spend suggests the problem has a real budget or replacement opportunity.',
+    whyItMatters:
+      'When customers already pay to solve a problem, pricing and willingness to pay are easier to validate.',
+  },
+  clear_economic_impact: {
+    title: 'Clear economic impact',
+    summary: 'Direct financial impact makes monetization and ROI framing easier.',
+    whyItMatters:
+      'Problems tied to revenue, cost, or measurable financial loss are easier to justify, prioritize, and sell.',
+  },
+  high_problem_frequency: {
+    title: 'High problem frequency',
+    summary: 'The problem occurs often enough to create repeated exposure and habit potential.',
+    whyItMatters:
+      'Frequent problems are easier to validate through repeated behavior and can support stronger retention.',
+  },
+  specific_target_customer: {
+    title: 'Specific target customer',
+    summary: 'A clearly defined audience makes the first validation loop easier to focus.',
+    whyItMatters:
+      'Specific customer definition improves outreach, positioning, and the odds of learning from a coherent segment.',
+  },
+  strong_timing_tailwind: {
+    title: 'Strong timing tailwind',
+    summary: 'A clear market or structural shift supports why this opportunity may work now.',
+    whyItMatters:
+      'Timing tailwinds can reduce adoption friction and make customers more open to changing behavior.',
+  },
+  clear_solution_gap: {
+    title: 'Clear solution gap',
+    summary: 'Current solutions appear meaningfully inadequate for the problem.',
+    whyItMatters:
+      'A visible gap gives a new product a clearer reason to exist and a sharper wedge against alternatives.',
+  },
+  limited_validation: {
+    title: 'Limited validation evidence',
+    summary: 'The opportunity still relies on limited direct customer proof.',
+    whyItMatters:
+      'Without behavioral validation, it is hard to know whether the problem is urgent enough to support a product.',
+    nextFocus:
+      'Collect direct evidence through interviews, commitments, pre-sales, or repeated usage.',
+  },
+  weak_customer_action: {
+    title: 'Lack of customer action',
+    summary:
+      'Customers are largely ignoring the issue, suggesting low urgency or low perceived value.',
+    whyItMatters:
+      'A problem is more attractive when customers are already trying to solve it, spending money, or changing behavior.',
+    nextFocus: 'Test whether customers will adopt a new workflow or mindset around this problem.',
+  },
+  low_urgency: {
+    title: 'Low urgency',
+    summary: 'The consequences appear tolerable enough that customers may delay action.',
+    whyItMatters:
+      'Low-urgency problems are harder to sell because customers can postpone switching or avoid the work entirely.',
+    nextFocus: 'Look for a sharper segment where the consequence is more severe or time-sensitive.',
+  },
+  low_frequency: {
+    title: 'Low problem frequency',
+    summary: 'The problem does not appear to happen often for the target customer.',
+    whyItMatters:
+      'Infrequent problems usually need very high severity or clear financial value to justify a dedicated solution.',
+    nextFocus: 'Validate whether a narrower audience experiences this problem more often.',
+  },
+  unclear_economic_impact: {
+    title: 'Unclear economic impact',
+    summary: 'The financial value of solving the problem is not yet obvious.',
+    whyItMatters:
+      'If the impact is hard to measure, customers may struggle to justify budget, priority, or switching effort.',
+    nextFocus: 'Quantify the cost, revenue impact, risk, or time value tied to this problem.',
+  },
+  broad_target_audience: {
+    title: 'Broad target audience',
+    summary: 'The target customer is still broad, which can dilute learning and positioning.',
+    whyItMatters:
+      'Early validation works better when the audience shares a similar context, workflow, and reason to care.',
+    nextFocus:
+      'Narrow the initial customer profile to the group with the clearest and most painful use case.',
+  },
+  good_enough_existing_solutions: {
+    title: 'Existing solutions may be good enough',
+    summary: 'Current alternatives may solve enough of the problem to reduce switching motivation.',
+    whyItMatters:
+      'When existing tools are adequate, a new product needs a much sharper advantage to overcome inertia.',
+    nextFocus:
+      'Find the specific workflow or segment where current solutions break down most clearly.',
+  },
+  strong_incumbents: {
+    title: 'Strong incumbent pressure',
+    summary: 'Existing solutions may be strong enough to make displacement difficult.',
+    whyItMatters:
+      'Strong incumbents raise the bar for differentiation, distribution, trust, and switching value.',
+    nextFocus: 'Identify a wedge where incumbents are weakest or where switching costs are lowest.',
+  },
+  weak_timing_signal: {
+    title: 'Weak timing signal',
+    summary: 'There is not yet a clear reason this opportunity is newly possible or urgent.',
+    whyItMatters:
+      'Without a timing catalyst, adoption may depend more heavily on execution and customer education.',
+    nextFocus:
+      'Clarify what has changed in technology, regulation, distribution, or customer behavior.',
+  },
+  market_does_not_recognize_problem: {
+    title: 'Market does not recognize the problem',
+    summary: 'Customers may not yet see this as a problem they need to solve.',
+    whyItMatters:
+      'Unrecognized problems require education before adoption, which can make demand generation slower and riskier.',
+    nextFocus: 'Test whether customers can be moved from awareness to concrete action.',
+  },
+}
+
+const INSIGHT_COPY_OVERRIDES: Partial<
+  Record<SignalKey, Partial<Record<InsightType, InsightCopy>>>
+> = {
+  limited_validation: {
+    strength: {
+      title: 'Strong validation evidence',
+      summary: 'Your answer shows concrete proof from revenue or financial commitment.',
+      whyItMatters: 'Behavioral proof reduces the chance that the opportunity is only theoretical.',
+    },
+    neutral: {
+      title: 'Early validation evidence',
+      summary: 'Your answer shows useful learning, but the evidence is not yet decisive.',
+      whyItMatters:
+        'Interviews can clarify the problem, but stronger commitments are needed before confidence rises.',
+    },
+  },
+  weak_customer_action: {
+    neutral: {
+      title: 'Customer action is still soft',
+      summary: 'Customers notice the issue, but current action appears limited.',
+      whyItMatters:
+        'Complaints are useful signal, but adoption depends on whether the pain becomes real behavior.',
+    },
+  },
+  high_problem_frequency: {
+    neutral: {
+      title: 'Moderate problem frequency',
+      summary: 'The problem recurs, but may not be frequent enough to create a daily habit.',
+      whyItMatters:
+        'Moderate-frequency problems can work, but they usually need strong urgency or value.',
+    },
+  },
+  strong_timing_tailwind: {
+    neutral: {
+      title: 'Some timing signal',
+      summary: 'There is some market movement, but the timing catalyst is not yet sharp.',
+      whyItMatters:
+        'A clearer why-now makes it easier to explain why customers should act now instead of later.',
+    },
+  },
+  specific_target_customer: {
+    neutral: {
+      title: 'Partly defined target customer',
+      summary: 'The audience is identifiable, but the initial wedge may still be broad.',
+      whyItMatters:
+        'A tighter customer definition makes validation faster and positioning easier to test.',
+    },
+  },
+  clear_solution_gap: {
+    neutral: {
+      title: 'Some solution gap',
+      summary: 'Existing solutions leave friction, but customers may still tolerate them.',
+      whyItMatters:
+        'A partial gap can support an opportunity if the unmet need is specific and painful enough.',
+    },
+  },
+  unclear_economic_impact: {
+    neutral: {
+      title: 'Indirect economic impact',
+      summary: 'The problem has value, but the financial case may need clearer measurement.',
+      whyItMatters:
+        'Indirect value can still matter, but pricing and prioritization get easier when impact is quantified.',
+    },
+  },
+}
+
+function getInsightCopy(signalKey: SignalKey, type: InsightType): InsightCopy {
+  const override = INSIGHT_COPY_OVERRIDES[signalKey]?.[type]
+  if (override) {
+    return override
+  }
+
+  if (type === 'neutral') {
+    const base = BASE_INSIGHT_COPY[signalKey]
+    return {
+      title: base.title,
+      summary: base.summary,
+      whyItMatters: base.whyItMatters,
+    }
+  }
+
+  return BASE_INSIGHT_COPY[signalKey]
 }
 
 const COPY_BANK = {
@@ -470,6 +705,186 @@ function prioritizeRisks(candidates: SignalKey[], primaryRisk: PrimaryRisk) {
   }
 
   return prioritized
+}
+
+function getInsightPriority(
+  signalKey: SignalKey,
+  type: InsightType,
+  primaryRisk: PrimaryRisk
+): number {
+  if (type === 'weakness' && PRIMARY_RISK_SIGNAL[primaryRisk] === signalKey) {
+    return 1000
+  }
+
+  if (type === 'neutral') {
+    const strengthIndex = STRENGTH_PRIORITY.indexOf(signalKey)
+    if (strengthIndex >= 0) {
+      return 100 + STRENGTH_PRIORITY.length - strengthIndex
+    }
+
+    const riskIndex = RISK_PRIORITY.indexOf(signalKey)
+    if (riskIndex >= 0) {
+      return 80 + RISK_PRIORITY.length - riskIndex
+    }
+
+    return 25
+  }
+
+  const priorityList = type === 'weakness' ? RISK_PRIORITY : STRENGTH_PRIORITY
+  const index = priorityList.indexOf(signalKey)
+  if (index >= 0) {
+    return (type === 'weakness' ? 500 : 300) + priorityList.length - index
+  }
+
+  return type === 'weakness' ? 100 : 200
+}
+
+const INSIGHT_SIGNAL_BY_ANSWER: Record<
+  string,
+  Record<string, { signalKey: SignalKey; type: InsightType }>
+> = {
+  customerBehavior: {
+    actively_searching: { signalKey: 'active_customer_behavior', type: 'strength' },
+    using_workarounds: { signalKey: 'active_customer_behavior', type: 'strength' },
+    complain_no_action: { signalKey: 'weak_customer_action', type: 'neutral' },
+    not_aware: { signalKey: 'market_does_not_recognize_problem', type: 'weakness' },
+  },
+  problemSeverity: {
+    existential: { signalKey: 'clear_economic_impact', type: 'strength' },
+    major_financial_reputational: { signalKey: 'clear_economic_impact', type: 'strength' },
+    productivity_loss: { signalKey: 'low_urgency', type: 'neutral' },
+    mild_inconvenience: { signalKey: 'low_urgency', type: 'weakness' },
+  },
+  problemFrequency: {
+    daily: { signalKey: 'high_problem_frequency', type: 'strength' },
+    weekly: { signalKey: 'high_problem_frequency', type: 'neutral' },
+    monthly: { signalKey: 'high_problem_frequency', type: 'neutral' },
+    rare: { signalKey: 'low_frequency', type: 'weakness' },
+  },
+  economicImpact: {
+    direct_revenue_loss: { signalKey: 'clear_economic_impact', type: 'strength' },
+    clear_cost_increase: { signalKey: 'clear_economic_impact', type: 'strength' },
+    time_productivity_only: { signalKey: 'unclear_economic_impact', type: 'neutral' },
+    no_measurable_impact: { signalKey: 'unclear_economic_impact', type: 'weakness' },
+  },
+  whyNow: {
+    structural_shift: { signalKey: 'strong_timing_tailwind', type: 'strength' },
+    behavioral_shift: { signalKey: 'strong_timing_tailwind', type: 'neutral' },
+    market_growing_only: { signalKey: 'strong_timing_tailwind', type: 'neutral' },
+    no_meaningful_change: { signalKey: 'weak_timing_signal', type: 'weakness' },
+  },
+  icpClarity: {
+    extremely_specific_niche: { signalKey: 'specific_target_customer', type: 'strength' },
+    defined_segment: { signalKey: 'specific_target_customer', type: 'neutral' },
+    large_general_category: { signalKey: 'broad_target_audience', type: 'weakness' },
+    everyone: { signalKey: 'broad_target_audience', type: 'weakness' },
+  },
+  currentBehavior: {
+    paying_competitor: {
+      signalKey: 'customers_paying_existing_solutions',
+      type: 'strength',
+    },
+    manual_workaround: { signalKey: 'active_customer_behavior', type: 'strength' },
+    poorly_solved: { signalKey: 'clear_solution_gap', type: 'neutral' },
+    ignored: { signalKey: 'weak_customer_action', type: 'weakness' },
+  },
+  solutionGap: {
+    clearly_inadequate: { signalKey: 'clear_solution_gap', type: 'strength' },
+    frustrating_but_tolerated: { signalKey: 'clear_solution_gap', type: 'neutral' },
+    good_enough: { signalKey: 'good_enough_existing_solutions', type: 'weakness' },
+    best_in_class: { signalKey: 'good_enough_existing_solutions', type: 'weakness' },
+  },
+  validationEvidence: {
+    paying_users: { signalKey: 'limited_validation', type: 'strength' },
+    lois_precommitments: { signalKey: 'limited_validation', type: 'strength' },
+    ten_plus_interviews: { signalKey: 'limited_validation', type: 'neutral' },
+    fewer_than_ten_interviews: { signalKey: 'limited_validation', type: 'weakness' },
+    no_interviews: { signalKey: 'limited_validation', type: 'weakness' },
+  },
+}
+
+function getInsightSignalForAnswer(
+  questionId: QuestionId,
+  optionId: string
+): { signalKey: SignalKey; type: InsightType } | null {
+  return INSIGHT_SIGNAL_BY_ANSWER[questionId]?.[optionId] ?? null
+}
+
+function buildInsight(
+  questionId: QuestionId,
+  optionId: string,
+  primaryRisk: PrimaryRisk,
+  questionOrder: number
+): Insight | null {
+  const question = PROBLEM_ANALYZER_SCHEMA.questions[questionId]
+  const selectedOption = question?.options.find((option) => option.id === optionId)
+  const signal = getInsightSignalForAnswer(questionId, optionId)
+
+  if (!question || !selectedOption || !signal) {
+    return null
+  }
+
+  const copy = getInsightCopy(signal.signalKey, signal.type)
+
+  return {
+    id: `question-${questionId}`,
+    questionId,
+    signalKey: signal.signalKey,
+    type: signal.type,
+    title: copy.title,
+    summary: copy.summary,
+    question: question.title,
+    answer: selectedOption.label,
+    whyItMatters: copy.whyItMatters,
+    nextFocus: copy.nextFocus,
+    priority: getInsightPriority(signal.signalKey, signal.type, primaryRisk),
+    questionOrder,
+  }
+}
+
+function sortInsightsByPriority(insights: Insight[]): Insight[] {
+  return [...insights].sort((a, b) => {
+    if (b.priority !== a.priority) return b.priority - a.priority
+    return a.id.localeCompare(b.id)
+  })
+}
+
+function selectKeyWeaknessIds(insights: Insight[]): string[] {
+  return sortInsightsByPriority(insights)
+    .filter((insight) => insight.type === 'weakness')
+    .slice(0, 3)
+    .map((insight) => insight.id)
+}
+
+function selectKeyStrengthIds(insights: Insight[]): string[] {
+  return sortInsightsByPriority(insights)
+    .filter((insight) => insight.type === 'strength')
+    .slice(0, 3)
+    .map((insight) => insight.id)
+}
+
+function buildInsights(answers: AnswersMap, primaryRisk: PrimaryRisk): Insight[] {
+  const insights: Insight[] = []
+  let questionOrder = 0
+
+  for (const screen of PROBLEM_ANALYZER_SCHEMA.screens) {
+    for (const questionId of screen.questionIds) {
+      const optionId = answers[questionId]
+      if (!optionId) {
+        questionOrder += 1
+        continue
+      }
+
+      const insight = buildInsight(questionId, optionId, primaryRisk, questionOrder)
+      if (insight) {
+        insights.push(insight)
+      }
+
+      questionOrder += 1
+    }
+  }
+
+  return insights
 }
 
 function buildDemandStrength(answers: AnswersMap, validationDepth: Level): Level {
@@ -718,6 +1133,7 @@ export function buildResultBlueprint(
     answers,
     interpretation.primaryRisk
   )
+  const insights = buildInsights(answers, interpretation.primaryRisk)
 
   let confidenceLevel: ConfidenceLevel = 'medium'
   if (interpretation.diagnosis.validationDepth === 0) confidenceLevel = 'low'
@@ -728,6 +1144,9 @@ export function buildResultBlueprint(
     primaryRisk: interpretation.primaryRisk,
     selectedStrengths: selectedSignals.strengths,
     selectedRisks: selectedSignals.risks,
+    insights,
+    keyWeaknessIds: selectKeyWeaknessIds(insights),
+    keyStrengthIds: selectKeyStrengthIds(insights),
     recommendationType: interpretation.recommendationType,
     recommendationKey: interpretation.primaryRisk,
     nextFocusType: interpretation.nextFocusType,
@@ -740,13 +1159,15 @@ export function buildResultOutput(blueprint: ResultBlueprint): ResultOutput {
   const strengthLabels = blueprint.selectedStrengths.map((signal) => SIGNAL_LABELS[signal])
   const riskLabels = blueprint.selectedRisks.map((signal) => SIGNAL_LABELS[signal])
 
-  const strengthSignals = strengthLabels.map((label) => ({
-    label,
+  const strengthSignals = blueprint.selectedStrengths.map((signalKey) => ({
+    signalKey,
+    label: SIGNAL_LABELS[signalKey],
     type: 'positive' as const,
   }))
 
-  const riskSignals = riskLabels.map((label) => ({
-    label,
+  const riskSignals = blueprint.selectedRisks.map((signalKey) => ({
+    signalKey,
+    label: SIGNAL_LABELS[signalKey],
     type: 'negative' as const,
   }))
 
@@ -771,6 +1192,9 @@ export function buildResultOutput(blueprint: ResultBlueprint): ResultOutput {
       level: blueprint.confidenceLevel,
       explanation: COPY_BANK.confidenceTemplates[blueprint.confidenceLevel],
     },
+    insights: blueprint.insights,
+    keyWeaknessIds: blueprint.keyWeaknessIds,
+    keyStrengthIds: blueprint.keyStrengthIds,
   }
 }
 

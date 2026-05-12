@@ -41,7 +41,7 @@ export default function ShareButton() {
       onClick={() => {
         void handleCopy()
       }}
-      className="text-body-xs text-muted hover:bg-subtle hover:text-body focus-visible:outline-primary-500 inline-flex items-center gap-1 rounded-[4px] px-1 py-1 focus-visible:outline-2"
+      className="text-body-xs text-muted hover:bg-subtle hover:text-body focus-visible:outline-primary-500 inline-flex cursor-pointer items-center gap-1 rounded-[4px] px-1 py-1 focus-visible:outline-2"
       aria-label="Copy link to this page"
     >
       <Icon name="shareNetwork" size="small" className="text-current" />

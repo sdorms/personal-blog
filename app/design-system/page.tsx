@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import ModalDemo from '@/components/design-system/ModalDemo'
 import { DESIGN_SYSTEM_SECTIONS } from '@/lib/design-system/navigation'
 
 export const metadata: Metadata = {
@@ -54,6 +55,19 @@ export default function Page() {
             </article>
           ))}
         </div>
+      </section>
+
+      <section className="mt-6 space-y-3">
+        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-950">
+          <h2 className="text-2xl leading-8 font-bold tracking-tight text-gray-900 dark:text-gray-100">
+            Component Preview
+          </h2>
+          <p className="mt-1 text-sm leading-6 text-gray-600 dark:text-gray-300">
+            Current reusable primitives that benefit from interactive review on this index page.
+          </p>
+        </div>
+
+        <ModalDemo />
       </section>
     </main>
   )
