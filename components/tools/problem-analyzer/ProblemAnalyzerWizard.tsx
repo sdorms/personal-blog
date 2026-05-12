@@ -306,22 +306,41 @@ export default function ProblemAnalyzerWizard() {
   }, [audienceText])
 
   useEffect(() => {
-    const nextProblemText = searchParams.get('problem') ?? ''
-    const nextAudienceText = searchParams.get('audience') ?? ''
     const nextAnswers = parseAnswersFromParams(searchParams)
     const nextConfidenceByQuestion = parseConfidenceByQuestion(searchParams)
     const nextScreenId = parseScreenFromParams(searchParams)
 
-    if (problemText !== nextProblemText) setProblemText(nextProblemText)
-    if (debouncedProblemText !== nextProblemText) setDebouncedProblemText(nextProblemText)
-    if (audienceText !== nextAudienceText) setAudienceText(nextAudienceText)
-    if (debouncedAudienceText !== nextAudienceText) setDebouncedAudienceText(nextAudienceText)
-    if (!answersEqual(answers, nextAnswers)) setAnswers(nextAnswers)
+    if (!hasHydratedFromUrl) {
+      const nextProblemText = searchParams.get('problem') ?? ''
+      const nextAudienceText = searchParams.get('audience') ?? ''
+
+      setProblemText(nextProblemText)
+      setDebouncedProblemText(nextProblemText)
+      setAudienceText(nextAudienceText)
+      setDebouncedAudienceText(nextAudienceText)
+      setAnswers(nextAnswers)
+      setConfidenceByQuestion(nextConfidenceByQuestion)
+      setScreenId(nextScreenId)
+      setHasHydratedFromUrl(true)
+
+      return
+    }
+
+    // After initial hydration, don't sync text inputs from URL.
+    // React state becomes the source of truth while typing.
+
+    if (!answersEqual(answers, nextAnswers)) {
+      setAnswers(nextAnswers)
+    }
+
     if (!confidenceMapsEqual(confidenceByQuestion, nextConfidenceByQuestion)) {
       setConfidenceByQuestion(nextConfidenceByQuestion)
     }
-    if (screenId !== nextScreenId) setScreenId(nextScreenId)
-    if (!hasHydratedFromUrl) setHasHydratedFromUrl(true)
+
+    if (screenId !== nextScreenId) {
+      setScreenId(nextScreenId)
+    }
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasHydratedFromUrl, searchParams])
 
@@ -342,11 +361,11 @@ export default function ProblemAnalyzerWizard() {
       }
     }
 
-    const normalizedProblem = debouncedProblemText.trim()
+    const normalizedProblem = debouncedProblemText
     if (normalizedProblem) {
       sp.set('problem', normalizedProblem)
     }
-    const normalizedAudience = debouncedAudienceText.trim()
+    const normalizedAudience = debouncedAudienceText
     if (normalizedAudience) {
       sp.set('audience', normalizedAudience)
     }
@@ -365,8 +384,16 @@ export default function ProblemAnalyzerWizard() {
       }
     }
 
+    const hasWizardState =
+      Boolean(normalizedProblem) ||
+      Boolean(normalizedAudience) ||
+      Object.values(answers).some(Boolean) ||
+      Object.values(confidenceByQuestion).some(Boolean)
+
     if (screenId !== INTRO_SCREEN_ID) {
       sp.set('screen', screenId)
+    } else if (hasWizardState) {
+      sp.set('screen', INTRO_SCREEN_ID)
     } else {
       sp.delete('screen')
     }
