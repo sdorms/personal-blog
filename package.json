@@ -13,12 +13,14 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^3.0.63",
     "@headlessui/react": "2.2.9",
     "@next/bundle-analyzer": "15.5.12",
     "@phosphor-icons/react": "^2.1.10",
     "@tailwindcss/forms": "^0.5.11",
     "@tailwindcss/postcss": "^4.1.18",
     "@tailwindcss/typography": "^0.5.19",
+    "ai": "^6.0.182",
     "body-scroll-lock": "^3.1.5",
     "contentlayer2": "0.5.8",
     "esbuild": "0.27.3",
@@ -46,7 +48,8 @@
     "remark-github-blockquote-alert": "^2.0.1",
     "remark-math": "^6.0.0",
     "tailwindcss": "^4.1.18",
-    "unist-util-visit": "^5.1.0"
+    "unist-util-visit": "^5.1.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.3",

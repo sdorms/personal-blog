@@ -301,6 +301,8 @@ export default function ProblemAnalyzerResults({
 }: ProblemAnalyzerResultsProps) {
   const keyWeaknesses = getInsightsByIds(output.insights, output.keyWeaknessIds)
   const keyStrengths = getInsightsByIds(output.insights, output.keyStrengthIds)
+  const [aiRecommendation, setAiRecommendation] = useState<string | null>(null)
+  const [aiLoading, setAiLoading] = useState(false)
   const [weaknessesOpen, setWeaknessesOpen] = useState(true)
   const [strengthsOpen, setStrengthsOpen] = useState(true)
   const [openCardRequest, setOpenCardRequest] = useState<OpenCardRequest>({
@@ -314,6 +316,42 @@ export default function ProblemAnalyzerResults({
       visibleInsights.map((insight) => [insight.signalKey, insight])
     )
   }, [keyWeaknesses, keyStrengths])
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadAiAnalysis() {
+      setAiLoading(true)
+
+      try {
+        const response = await fetch('/api/problem-analyzer/ai-analysis', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            problemText,
+            audienceText,
+            resultOutput: output,
+          }),
+        })
+
+        const data = await response.json()
+
+        if (!cancelled && data.aiOutput?.strategicRecommendation) {
+          setAiRecommendation(data.aiOutput.strategicRecommendation)
+        }
+      } catch (error) {
+        console.error('[load-ai-analysis]', error)
+      } finally {
+        if (!cancelled) setAiLoading(false)
+      }
+    }
+
+    loadAiAnalysis()
+
+    return () => {
+      cancelled = true
+    }
+  }, [problemText, audienceText, output])
 
   useEffect(() => {
     if (!openCardRequest.insightId) {
@@ -414,7 +452,11 @@ export default function ProblemAnalyzerResults({
         <div className="space-y-4">
           <h2 className="text-eyebrow text-body">Recommendation</h2>
           <h3 className="text-h4 text-heading">{output.recommendation.title}</h3>
-          <p className="text-body-sm text-body">{output.recommendation.detail}</p>
+          <p className="text-body-sm text-body">
+            {aiLoading
+              ? 'Generating recommendation...'
+              : (aiRecommendation ?? output.recommendation.detail)}
+          </p>
         </div>
       </section>
 
