@@ -12,6 +12,7 @@ export type ProblemAnalyzerV2Analysis = {
   audienceText: string
   input: ProblemAnalyzerV2Input
   output: ResultOutput
+  answers: AnswersMap
 }
 
 export function buildProblemAnalyzerV2Input(
@@ -37,5 +38,6 @@ export function buildProblemAnalyzerV2Analysis(params: {
     audienceText: params.audienceText.trim(),
     input,
     output: analyzeProblem(input.answers, input.confidenceByQuestion),
+    answers: input.answers,
   }
 }

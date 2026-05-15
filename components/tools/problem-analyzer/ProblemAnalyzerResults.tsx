@@ -15,11 +15,14 @@ import type {
   ResultOutput,
   SignalKey,
 } from '@/lib/problem-analyzer/v2/interpreter'
+import type { ProblemAnalyzerAiOutput } from '@/lib/problem-analyzer/v2/ai/schema'
+import type { AnswersMap } from '@/lib/problem-analyzer/score'
 
 type ProblemAnalyzerResultsProps = {
   problemText: string
   audienceText?: string
   output: ResultOutput
+  answers: AnswersMap
 }
 
 type InsightSectionProps = {
@@ -298,10 +301,9 @@ export default function ProblemAnalyzerResults({
   problemText,
   audienceText,
   output,
+  answers,
 }: ProblemAnalyzerResultsProps) {
-  const keyWeaknesses = getInsightsByIds(output.insights, output.keyWeaknessIds)
-  const keyStrengths = getInsightsByIds(output.insights, output.keyStrengthIds)
-  const [aiRecommendation, setAiRecommendation] = useState<string | null>(null)
+  const [aiOutput, setAiOutput] = useState<ProblemAnalyzerAiOutput | null>(null)
   const [aiLoading, setAiLoading] = useState(false)
   const [weaknessesOpen, setWeaknessesOpen] = useState(true)
   const [strengthsOpen, setStrengthsOpen] = useState(true)
@@ -309,6 +311,30 @@ export default function ProblemAnalyzerResults({
     insightId: null,
     sequence: 0,
   })
+
+  const aiNextFocusByInsightId = useMemo(() => {
+    return new Map(
+      aiOutput?.insightValidationGuidance.map((item) => [item.insightId, item.nextFocus]) ?? []
+    )
+  }, [aiOutput])
+
+  const enhancedInsights = useMemo(() => {
+    return output.insights.map((insight) => {
+      const aiNextFocus = aiNextFocusByInsightId.get(insight.id)
+
+      if (!aiNextFocus) {
+        return insight
+      }
+
+      return {
+        ...insight,
+        nextFocus: aiNextFocus,
+      }
+    })
+  }, [output.insights, aiNextFocusByInsightId])
+
+  const keyWeaknesses = getInsightsByIds(enhancedInsights, output.keyWeaknessIds)
+  const keyStrengths = getInsightsByIds(enhancedInsights, output.keyStrengthIds)
 
   const insightBySignalKey = useMemo(() => {
     const visibleInsights = [...keyWeaknesses, ...keyStrengths]
@@ -330,14 +356,14 @@ export default function ProblemAnalyzerResults({
           body: JSON.stringify({
             problemText,
             audienceText,
-            resultOutput: output,
+            answers,
           }),
         })
 
         const data = await response.json()
 
-        if (!cancelled && data.aiOutput?.strategicRecommendation) {
-          setAiRecommendation(data.aiOutput.strategicRecommendation)
+        if (!cancelled && data.aiOutput) {
+          setAiOutput(data.aiOutput)
         }
       } catch (error) {
         console.error('[load-ai-analysis]', error)
@@ -351,7 +377,7 @@ export default function ProblemAnalyzerResults({
     return () => {
       cancelled = true
     }
-  }, [problemText, audienceText, output])
+  }, [problemText, audienceText, output, answers])
 
   useEffect(() => {
     if (!openCardRequest.insightId) {
@@ -403,10 +429,14 @@ export default function ProblemAnalyzerResults({
           </div>
           <div className="space-y-4">
             <div className="space-y-2">
-              <ResultHeadline tone={output.overallAssessment}>{output.summary}</ResultHeadline>
+              <ResultHeadline tone={output.overallAssessment}>
+                {aiOutput?.summary ?? output.summary}
+              </ResultHeadline>
               <ProgressBar tone={output.overallAssessment} />
             </div>
-            <p className="text-body-md text-heading">{output.detail}</p>
+            <p className="text-body-md text-heading">
+              {aiLoading ? 'Generating analysis...' : (aiOutput?.detail ?? output.detail)}
+            </p>
           </div>
         </div>
       </section>
@@ -451,11 +481,13 @@ export default function ProblemAnalyzerResults({
       <section className="border-border border-b py-5">
         <div className="space-y-4">
           <h2 className="text-eyebrow text-body">Recommendation</h2>
-          <h3 className="text-h4 text-heading">{output.recommendation.title}</h3>
+          <h3 className="text-h4 text-heading">
+            {aiOutput?.recommendation.title ?? output.recommendation.title}
+          </h3>
           <p className="text-body-sm text-body">
             {aiLoading
               ? 'Generating recommendation...'
-              : (aiRecommendation ?? output.recommendation.detail)}
+              : (aiOutput?.recommendation.detail ?? output.recommendation.detail)}
           </p>
         </div>
       </section>
@@ -463,8 +495,12 @@ export default function ProblemAnalyzerResults({
       <section className="border-border border-b py-5">
         <div className="space-y-4">
           <h2 className="text-eyebrow text-body">Next Focus</h2>
-          <h3 className="text-h4 text-heading">{output.nextFocus.title}</h3>
-          <p className="text-body-sm text-body">{output.nextFocus.detail}</p>
+          <h3 className="text-h4 text-heading">
+            {aiOutput?.nextFocus.title ?? output.nextFocus.title}
+          </h3>
+          <p className="text-body-sm text-body">
+            {aiOutput?.nextFocus.detail ?? output.nextFocus.detail}
+          </p>
         </div>
       </section>
 
@@ -488,14 +524,18 @@ export default function ProblemAnalyzerResults({
         openCardRequest={openCardRequest}
       />
 
-      <AllInsightsSection insights={output.insights} />
+      <AllInsightsSection insights={enhancedInsights} />
 
       {/* Hidden confidence section for now but left in case I want to reintroduce in future */}
       {/* <section className="py-5">
         <div className="space-y-4">
           <h2 className="text-eyebrow text-body">Confidence</h2>
-          <p className="text-h4 text-heading capitalize">{output.confidence.level}</p>
-          <p className="text-body-sm text-body">{output.confidence.explanation}</p>
+          <p className="text-h4 text-heading capitalize">
+  {aiOutput?.confidence.level ?? output.confidence.level}
+</p>
+          <p className="text-body-sm text-body">
+  {aiOutput?.confidence.explanation ?? output.confidence.explanation}
+</p>
         </div>
       </section> */}
     </div>

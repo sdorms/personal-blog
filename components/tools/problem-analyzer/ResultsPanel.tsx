@@ -9,6 +9,7 @@ export default function ResultsPanel({ result }: { result: ResultModel }) {
       problemText={result.problemText}
       audienceText={result.audienceText}
       output={result.output}
+      answers={result.answers}
     />
   )
 }
